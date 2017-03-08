@@ -87,6 +87,7 @@ struct serial8250_config {
 #define UART_BUG_NOMSR	(1 << 2)	/* UART has buggy MSR status bits (Au1x00) */
 #define UART_BUG_THRE	(1 << 3)	/* UART has buggy THRE reassertion */
 #define UART_BUG_PARITY	(1 << 4)	/* UART mishandles parity if FIFO enabled */
+#define UART_BUG_QUOT1	(1 << 5)	/* UART has buggy quot (quot - 1) */
 
 
 #ifdef CONFIG_SERIAL_8250_SHARE_IRQ
