@@ -25,6 +25,7 @@
 struct ingenic_uart_config {
 	int tx_loadsz;
 	int fifosize;
+	unsigned short bugs;
 };
 
 struct ingenic_uart_data {
@@ -245,6 +246,7 @@ static int ingenic_uart_probe(struct platform_device *pdev)
 	uart.port.fifosize = cdata->fifosize;
 	uart.tx_loadsz = cdata->tx_loadsz;
 	uart.capabilities = UART_CAP_FIFO | UART_CAP_RTOIE;
+	uart.bugs = cdata->bugs;
 
 	/* Check for a fixed line number */
 	line = of_alias_get_id(pdev->dev.of_node, "serial");
@@ -309,6 +311,7 @@ static int ingenic_uart_remove(struct platform_device *pdev)
 static const struct ingenic_uart_config jz4740_uart_config = {
 	.tx_loadsz = 8,
 	.fifosize = 16,
+	.bugs = UART_BUG_QUOT1,
 };
 
 static const struct ingenic_uart_config jz4760_uart_config = {
