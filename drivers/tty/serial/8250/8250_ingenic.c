@@ -240,6 +240,7 @@ static int ingenic_uart_probe(struct platform_device *pdev)
 	uart.port.fifosize = cdata->fifosize;
 	uart.tx_loadsz = cdata->tx_loadsz;
 	uart.capabilities = UART_CAP_FIFO | UART_CAP_RTOIE;
+	uart.bugs = UART_BUG_QUOT1;
 
 	/* Check for a fixed line number */
 	line = of_alias_get_id(pdev->dev.of_node, "serial");

@@ -2465,6 +2465,12 @@ static unsigned int serial8250_get_divisor(struct uart_8250_port *up,
 	if (up->bugs & UART_BUG_QUOT && (quot & 0xff) == 0)
 		quot++;
 
+	/*
+	 * Ingenic JZ4740 workaround
+	 */
+	if (up->bugs & UART_BUG_QUOT1)
+		quot--;
+
 	return quot;
 }
 
