@@ -450,6 +450,11 @@ static int ingenic_clk_enable(struct clk_hw *hw)
 		spin_lock_irqsave(&cgu->lock, flags);
 		ingenic_cgu_gate_set(cgu, &clk_info->gate, false);
 		spin_unlock_irqrestore(&cgu->lock, flags);
+	} else if (clk_info->gate.reg != 0) {
+		/* ungate the clock */
+		spin_lock_irqsave(&cgu->lock, flags);
+		ingenic_cgu_gate_set(cgu, &clk_info->gate, true);
+		spin_unlock_irqrestore(&cgu->lock, flags);
 	}
 
 	return 0;
@@ -469,6 +474,11 @@ static void ingenic_clk_disable(struct clk_hw *hw)
 		spin_lock_irqsave(&cgu->lock, flags);
 		ingenic_cgu_gate_set(cgu, &clk_info->gate, true);
 		spin_unlock_irqrestore(&cgu->lock, flags);
+	} else if (clk_info->gate.reg != 0) {
+		/* gate the clock */
+		spin_lock_irqsave(&cgu->lock, flags);
+		ingenic_cgu_gate_set(cgu, &clk_info->gate, false);
+		spin_unlock_irqrestore(&cgu->lock, flags);
 	}
 }
 
@@ -485,6 +495,10 @@ static int ingenic_clk_is_enabled(struct clk_hw *hw)
 	if (clk_info->type & CGU_CLK_GATE) {
 		spin_lock_irqsave(&cgu->lock, flags);
 		enabled = !ingenic_cgu_gate_get(cgu, &clk_info->gate);
+		spin_unlock_irqrestore(&cgu->lock, flags);
+	} else if (clk_info->gate.reg != 0) {
+		spin_lock_irqsave(&cgu->lock, flags);
+		enabled = !!ingenic_cgu_gate_get(cgu, &clk_info->gate);
 		spin_unlock_irqrestore(&cgu->lock, flags);
 	}
 
