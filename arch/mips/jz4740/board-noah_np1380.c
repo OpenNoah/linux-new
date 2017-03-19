@@ -48,37 +48,24 @@
 /* Early prototypes of the QI LB60 had only 1GB of NAND.
  * In order to support these devices as well the partition and ecc layout is
  * initialized depending on the NAND size */
-static struct mtd_partition noah_np1380_partitions_1gb[] = {
-	{
-		.name = "NAND BOOT partition",
-		.offset = 0 * 0x100000,
-		.size = 4 * 0x100000,
-	},
-	{
-		.name = "NAND KERNEL partition",
-		.offset = 4 * 0x100000,
-		.size = 4 * 0x100000,
-	},
-	{
-		.name = "NAND ROOTFS partition",
-		.offset = 8 * 0x100000,
-		.size = (504 + 512) * 0x100000,
-	},
-};
-
 static struct mtd_partition noah_np1380_partitions_2gb[] = {
 	{
-		.name = "NAND BOOT partition",
+		.name = "NOAH U-boot partition 0",
 		.offset = 0 * 0x100000,
-		.size = 4 * 0x100000,
+		.size = 2 * 0x100000,
 	},
 	{
-		.name = "NAND KERNEL partition",
+		.name = "NOAH Serial partition 1",
+		.offset = 2 * 0x100000,
+		.size = 2 * 0x100000,
+	},
+	{
+		.name = "NOAH Kernel partition 2",
 		.offset = 4 * 0x100000,
 		.size = 4 * 0x100000,
 	},
 	{
-		.name = "NAND ROOTFS partition",
+		.name = "NOAH ROOT FS partition 3",
 		.offset = 8 * 0x100000,
 		.size = (504 + 512 + 1024) * 0x100000,
 	},
@@ -90,13 +77,8 @@ static int noah_np1380_ooblayout_ecc(struct mtd_info *mtd, int section,
 	if (section)
 		return -ERANGE;
 
-	oobregion->length = 36;
-	oobregion->offset = 6;
-
-	if (mtd->oobsize == 128) {
-		oobregion->length *= 2;
-		oobregion->offset *= 2;
-	}
+	oobregion->offset = 56;
+	oobregion->length = mtd->oobsize - oobregion->offset;
 
 	return 0;
 }
@@ -104,23 +86,13 @@ static int noah_np1380_ooblayout_ecc(struct mtd_info *mtd, int section,
 static int noah_np1380_ooblayout_free(struct mtd_info *mtd, int section,
 				  struct mtd_oob_region *oobregion)
 {
-	int eccbytes = 36, eccoff = 6;
-
-	if (section > 1)
+	if (section)
 		return -ERANGE;
 
-	if (mtd->oobsize == 128) {
-		eccbytes *= 2;
-		eccoff *= 2;
-	}
-
-	if (!section) {
-		oobregion->offset = 2;
-		oobregion->length = eccoff - 2;
-	} else {
-		oobregion->offset = eccoff + eccbytes;
-		oobregion->length = mtd->oobsize - oobregion->offset;
-	}
+	//oobregion->offset = 56 + 9;
+	//oobregion->length = mtd->oobsize - oobregion->offset;
+	oobregion->offset = 0;
+	oobregion->length = 56 - oobregion->offset;
 
 	return 0;
 }
@@ -134,15 +106,10 @@ static void noah_np1380_nand_ident(struct platform_device *pdev,
 		struct mtd_info *mtd, struct mtd_partition **partitions,
 		int *num_partitions)
 {
-	struct nand_chip *chip = mtd_to_nand(mtd);
+	//struct nand_chip *chip = mtd_to_nand(mtd);
 
-	if (chip->page_shift == 12) {
-		*partitions = noah_np1380_partitions_2gb;
-		*num_partitions = ARRAY_SIZE(noah_np1380_partitions_2gb);
-	} else {
-		*partitions = noah_np1380_partitions_1gb;
-		*num_partitions = ARRAY_SIZE(noah_np1380_partitions_1gb);
-	}
+	*partitions = noah_np1380_partitions_2gb;
+	*num_partitions = ARRAY_SIZE(noah_np1380_partitions_2gb);
 
 	mtd_set_ooblayout(mtd, &noah_np1380_ooblayout_ops);
 }
