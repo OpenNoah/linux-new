@@ -14,8 +14,12 @@ config JZ4780_CI20
 config JZ4740_NOAH_NP1380
 	bool "Innovative Noah Electronic NP1380"
 	select MACH_JZ4740
+	select JZ4740_NOAH
 
 endchoice
+
+config JZ4740_NOAH
+	bool
 
 config MACH_JZ4740
 	bool
