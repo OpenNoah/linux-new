@@ -88,7 +88,7 @@ static const struct ingenic_cgu_clk_info jz4740_cgu_clocks[] = {
 	/* Muxes & dividers */
 
 	[JZ4740_CLK_PLL_HALF] = {
-		"pll half", CGU_CLK_DIV,
+		"pll half", CGU_CLK_DIV | CGU_CLK_DIV_INV,
 		.parents = { JZ4740_CLK_PLL, -1, -1, -1 },
 		.div = { CGU_REG_CPCCR, 21, 1, 1, -1, -1, -1 },
 	},
