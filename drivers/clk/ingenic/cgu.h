@@ -150,6 +150,7 @@ struct ingenic_cgu_clk_info {
 		CGU_CLK_DIV		= BIT(5),
 		CGU_CLK_FIXDIV		= BIT(6),
 		CGU_CLK_CUSTOM		= BIT(7),
+		CGU_CLK_DIV_INV		= BIT(8),	// Divider is inverted
 	} type;
 
 	int parents[4];

@@ -324,6 +324,8 @@ ingenic_clk_recalc_rate(struct clk_hw *hw, unsigned long parent_rate)
 		div_reg = readl(cgu->base + clk_info->div.reg);
 		div = (div_reg >> clk_info->div.shift) &
 		      GENMASK(clk_info->div.bits - 1, 0);
+		if (clk_info->type & CGU_CLK_DIV_INV)
+			div ^= GENMASK(clk_info->div.bits - 1, 0);
 		div += 1;
 		div *= clk_info->div.div;
 
@@ -405,6 +407,8 @@ ingenic_clk_set_rate(struct clk_hw *hw, unsigned long req_rate,
 		mask = GENMASK(clk_info->div.bits - 1, 0);
 		reg &= ~(mask << clk_info->div.shift);
 		reg |= ((div / clk_info->div.div) - 1) << clk_info->div.shift;
+		if (clk_info->type & CGU_CLK_DIV_INV)
+			reg ^= mask << clk_info->div.shift;
 
 		/* clear the stop bit */
 		if (clk_info->div.stop_bit != -1)
@@ -635,7 +639,7 @@ static int ingenic_register_clock(struct ingenic_cgu *cgu, unsigned idx)
 	}
 
 	if (caps & CGU_CLK_DIV) {
-		caps &= ~CGU_CLK_DIV;
+		caps &= ~(CGU_CLK_DIV | CGU_CLK_DIV_INV);
 	} else {
 		/* pass rate changes to the parent clock */
 		clk_init.flags |= CLK_SET_RATE_PARENT;
