@@ -11,6 +11,10 @@ config JZ4780_CI20
 	bool "MIPS Creator CI20"
 	select MACH_JZ4780
 
+config JZ4740_NOAH_NP1380
+	bool "Innovative Noah Electronic NP1380"
+	select MACH_JZ4740
+
 endchoice
 
 config MACH_JZ4740
