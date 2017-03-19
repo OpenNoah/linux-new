@@ -169,8 +169,10 @@ static int jz_nand_calculate_ecc_rs(struct mtd_info *mtd, const uint8_t *dat,
 	uint32_t reg, status;
 	int i;
 	unsigned int timeout = 1000;
+#ifndef CONFIG_JZ4740_NOAH
 	static uint8_t empty_block_ecc[] = {0xcd, 0x9d, 0x90, 0x58, 0xf4,
 						0x8b, 0xff, 0xb7, 0x6f};
+#endif
 
 	if (nand->is_reading)
 		return 0;
@@ -189,10 +191,12 @@ static int jz_nand_calculate_ecc_rs(struct mtd_info *mtd, const uint8_t *dat,
 	for (i = 0; i < 9; ++i)
 		ecc_code[i] = readb(nand->base + JZ_REG_NAND_PAR0 + i);
 
+#ifndef CONFIG_JZ4740_NOAH
 	/* If the written data is completly 0xff, we also want to write 0xff as
 	 * ecc, otherwise we will get in trouble when doing subpage writes. */
 	if (memcmp(ecc_code, empty_block_ecc, 9) == 0)
 		memset(ecc_code, 0xff, 9);
+#endif
 
 	return 0;
 }
