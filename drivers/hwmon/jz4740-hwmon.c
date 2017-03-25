@@ -34,12 +34,14 @@ struct jz4740_hwmon {
 	struct platform_device *pdev;
 	struct completion read_completion;
 	struct mutex lock;
+	volatile unsigned long val;
 };
 
 static irqreturn_t jz4740_hwmon_irq(int irq, void *data)
 {
 	struct jz4740_hwmon *hwmon = data;
 
+	hwmon->val = readw(hwmon->base) & 0x0fff;
 	complete(&hwmon->read_completion);
 	return IRQ_HANDLED;
 }
@@ -64,8 +66,7 @@ static ssize_t jz4740_hwmon_read_adcin(struct device *dev,
 	t = wait_for_completion_interruptible_timeout(completion, HZ);
 
 	if (t > 0) {
-		val = readw(hwmon->base) & 0xfff;
-		val = (val * 3300) >> 12;
+		val = (hwmon->val * 3300) >> 12;
 		ret = sprintf(buf, "%lu\n", val);
 	} else {
 		ret = t ? t : -ETIMEDOUT;
