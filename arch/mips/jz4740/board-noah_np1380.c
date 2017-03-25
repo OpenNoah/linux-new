@@ -1,10 +1,10 @@
 /*
  * linux/arch/mips/jz4740/board-noah_np1380.c
  *
- * QI_LB60 board support
+ * Noah NP1380 board support
  *
- * Copyright (c) 2009 Qi Hardware inc.,
- * Author: Xiangfu Liu <xiangfu@qi-hardware.com>
+ * Copyright 2017, Yubo Zhi (normanzyb@gmail.com)
+ * Copyright (c) 2009 Qi Hardware inc., Xiangfu Liu <xiangfu@qi-hardware.com>
  * Copyright 2010, Lars-Peter Clausen <lars@metafoo.de>
  *
  * This program is free software; you can redistribute it and/or modify
