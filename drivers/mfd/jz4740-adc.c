@@ -36,7 +36,7 @@
 #define JZ_REG_ADC_CTRL		0x08
 #define JZ_REG_ADC_STATUS	0x0c
 
-#define JZ_REG_ADC_TOUCHSCREEN_BASE	0x10
+#define JZ_REG_ADC_TOUCH_BASE	0x10
 #define JZ_REG_ADC_BATTERY_BASE	0x1c
 #define JZ_REG_ADC_HWMON_BASE	0x20
 
@@ -181,6 +181,26 @@ static struct resource jz4740_battery_resources[] = {
 	},
 };
 
+static struct resource jz4740_touch_resources[] = {
+	{
+		.start = JZ_ADC_IRQ_TOUCH,
+		.flags = IORESOURCE_IRQ,
+	},
+	{
+		.start = JZ_ADC_IRQ_PENUP,
+		.flags = IORESOURCE_IRQ,
+	},
+	{
+		.start = JZ_ADC_IRQ_PENDOWN,
+		.flags = IORESOURCE_IRQ,
+	},
+	{
+		.start	= JZ_REG_ADC_TOUCH_BASE,
+		.end	= JZ_REG_ADC_BATTERY_BASE - 1,
+		.flags	= IORESOURCE_MEM,
+	},
+};
+
 static const struct mfd_cell jz4740_adc_cells[] = {
 	{
 		.id = 0,
@@ -196,6 +216,15 @@ static const struct mfd_cell jz4740_adc_cells[] = {
 		.name = "jz4740-battery",
 		.num_resources = ARRAY_SIZE(jz4740_battery_resources),
 		.resources = jz4740_battery_resources,
+
+		.enable = jz4740_adc_cell_enable,
+		.disable = jz4740_adc_cell_disable,
+	},
+	{
+		.id = 2,
+		.name = "jz4740-touch",
+		.num_resources = ARRAY_SIZE(jz4740_touch_resources),
+		.resources = jz4740_touch_resources,
 
 		.enable = jz4740_adc_cell_enable,
 		.disable = jz4740_adc_cell_disable,
