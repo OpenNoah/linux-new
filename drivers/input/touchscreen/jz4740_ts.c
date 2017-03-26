@@ -81,6 +81,7 @@ static irqreturn_t jz4740_ts_irq(int irq, void *data)
 		if (ts->mode != JZ_ADC_TS_MODE_XY) {
 			val = readl(ts->base + JZ_REG_ADC_ADTCH);
 			ts->val.z32 = val & 0x0fff0fff;
+			input_report_abs(ts->input, ABS_PRESSURE, ts->val.z[0]);
 		}
 		input_report_abs(ts->input, ABS_X, ts->val.x);
 		input_report_abs(ts->input, ABS_Y, ts->val.y);
@@ -195,6 +196,8 @@ static int jz4740_ts_probe(struct platform_device *pdev)
 	input->keybit[BIT_WORD(BTN_TOUCH)] = BIT_MASK(BTN_TOUCH);
 	input_set_abs_params(input, ABS_X, 0, 0x0fff, 0, 0);
 	input_set_abs_params(input, ABS_Y, 0, 0x0fff, 0, 0);
+	if (ts->mode != JZ_ADC_TS_MODE_XY)
+		input_set_abs_params(input, ABS_PRESSURE, 0, 0x0fff, 0, 0);
 
 	input->name = "JZ4740 touchscreen";
 	input->id.bustype = BUS_HOST;
