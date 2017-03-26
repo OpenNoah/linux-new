@@ -24,6 +24,7 @@
 #include <linux/platform_device.h>
 #include <linux/slab.h>
 #include <linux/spinlock.h>
+#include <linux/delay.h>
 
 #include <linux/clk.h>
 #include <linux/mfd/core.h>
@@ -36,18 +37,18 @@
 #define JZ_REG_ADC_CTRL		0x08
 #define JZ_REG_ADC_STATUS	0x0c
 
-#define JZ_REG_ADC_TOUCH_BASE	0x10
+#define JZ_REG_ADC_TS_BASE	0x10
 #define JZ_REG_ADC_BATTERY_BASE	0x1c
 #define JZ_REG_ADC_HWMON_BASE	0x20
 
-#define JZ_ADC_ENABLE_TOUCH	BIT(2)
+#define JZ_ADC_ENABLE_TS	BIT(2)
 #define JZ_ADC_ENABLE_BATTERY	BIT(1)
 #define JZ_ADC_ENABLE_ADCIN	BIT(0)
 
 enum {
 	JZ_ADC_IRQ_ADCIN = 0,
 	JZ_ADC_IRQ_BATTERY,
-	JZ_ADC_IRQ_TOUCH,
+	JZ_ADC_IRQ_TS,
 	JZ_ADC_IRQ_PENUP,
 	JZ_ADC_IRQ_PENDOWN,
 };
@@ -85,14 +86,18 @@ static void jz4740_adc_irq_demux(struct irq_desc *desc)
  * devices and thus is the only clock which needs refcounting */
 static inline void jz4740_adc_clk_enable(struct jz4740_adc *adc)
 {
-	if (atomic_inc_return(&adc->clk_ref) == 1)
+	if (atomic_inc_return(&adc->clk_ref) == 1) {
 		clk_prepare_enable(adc->clk);
+		mdelay(5);
+	}
 }
 
 static inline void jz4740_adc_clk_disable(struct jz4740_adc *adc)
 {
-	if (atomic_dec_return(&adc->clk_ref) == 0)
+	if (atomic_dec_return(&adc->clk_ref) == 0) {
+		mdelay(5);
 		clk_disable_unprepare(adc->clk);
+	}
 }
 
 static inline void jz4740_adc_set_enabled(struct jz4740_adc *adc, int engine,
@@ -181,9 +186,9 @@ static struct resource jz4740_battery_resources[] = {
 	},
 };
 
-static struct resource jz4740_touch_resources[] = {
+static struct resource jz4740_ts_resources[] = {
 	{
-		.start = JZ_ADC_IRQ_TOUCH,
+		.start = JZ_ADC_IRQ_TS,
 		.flags = IORESOURCE_IRQ,
 	},
 	{
@@ -195,7 +200,7 @@ static struct resource jz4740_touch_resources[] = {
 		.flags = IORESOURCE_IRQ,
 	},
 	{
-		.start	= JZ_REG_ADC_TOUCH_BASE,
+		.start	= JZ_REG_ADC_TS_BASE,
 		.end	= JZ_REG_ADC_BATTERY_BASE - 1,
 		.flags	= IORESOURCE_MEM,
 	},
@@ -222,9 +227,9 @@ static const struct mfd_cell jz4740_adc_cells[] = {
 	},
 	{
 		.id = 2,
-		.name = "jz4740-touch",
-		.num_resources = ARRAY_SIZE(jz4740_touch_resources),
-		.resources = jz4740_touch_resources,
+		.name = "jz4740_ts",
+		.num_resources = ARRAY_SIZE(jz4740_ts_resources),
+		.resources = jz4740_ts_resources,
 
 		.enable = jz4740_adc_cell_enable,
 		.disable = jz4740_adc_cell_disable,
@@ -310,7 +315,7 @@ static int jz4740_adc_probe(struct platform_device *pdev)
 	irq_set_chained_handler_and_data(adc->irq, jz4740_adc_irq_demux, gc);
 
 	writeb(0x00, adc->base + JZ_REG_ADC_ENABLE);
-	writeb(0xff, adc->base + JZ_REG_ADC_CTRL);
+	writeb(0x1f, adc->base + JZ_REG_ADC_CTRL);
 
 	ret = mfd_add_devices(&pdev->dev, 0, jz4740_adc_cells,
 			      ARRAY_SIZE(jz4740_adc_cells), mem_base,
