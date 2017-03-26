@@ -1214,4 +1214,15 @@ config TOUCHSCREEN_ROHM_BU21023
 	  To compile this driver as a module, choose M here: the
 	  module will be called bu21023_ts.
 
+config TOUCHSCREEN_JZ4740
+	tristate "Ingenic JZ4740 SoC touchscreen driver"
+	depends on MACH_JZ4740 && MFD_JZ4740_ADC
+	help
+	  Say Y here if you have a touchscreen using JZ4740 ADC controller.
+
+	  If unsure, say N.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called jz4740_ts.
+
 endif
