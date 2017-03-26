@@ -489,7 +489,7 @@ config MFD_JANZ_CMODIO
 	  CAN and GPIO controllers.
 
 config MFD_JZ4740_ADC
-	bool "Ingenic JZ4740 ADC core"
+	tristate "Ingenic JZ4740 ADC core"
 	select MFD_CORE
 	select GENERIC_IRQ_CHIP
 	depends on MACH_JZ4740
