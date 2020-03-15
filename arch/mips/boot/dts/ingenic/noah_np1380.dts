@@ -1,0 +1,316 @@
+// SPDX-License-Identifier: GPL-2.0
+/dts-v1/;
+
+#include "jz4740.dtsi"
+
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/iio/adc/ingenic,adc.h>
+#include <dt-bindings/clock/ingenic,tcu.h>
+#include <dt-bindings/input/input.h>
+
+/ {
+	compatible = "noah,np1380", "ingenic,jz4740";
+
+	chosen {
+		stdout-path = &uart0;
+	};
+
+	vcc: regulator@0 {
+		compatible = "regulator-fixed";
+		regulator-name = "vcc";
+
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		regulator-always-on;
+	};
+
+	mmc_power: regulator@1 {
+		compatible = "regulator-fixed";
+		regulator-name = "mmc_vcc";
+		gpio = <&gpc 27 GPIO_ACTIVE_LOW>;
+
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+	};
+
+	/*amp_supply: regulator@2 {
+		compatible = "regulator-fixed";
+		regulator-name = "amp_supply";
+		gpio = <&gpd 4 0>;
+		enable-active-high;
+
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+	};
+
+	amp: analog-amplifier {
+		compatible = "simple-audio-amplifier";
+		enable-gpios = <&gpb 29 GPIO_ACTIVE_HIGH>;
+		VCC-supply = <&amp_supply>;
+	};
+
+	sound {
+		compatible = "simple-audio-card";
+
+		simple-audio-card,name = "QI LB60";
+		simple-audio-card,format = "i2s";
+
+		simple-audio-card,widgets =
+			"Speaker", "Speaker",
+			"Microphone", "Mic";
+		simple-audio-card,routing =
+			"MIC", "Mic",
+			"Speaker", "OUTL",
+			"Speaker", "OUTR",
+			"INL", "LOUT",
+			"INL", "ROUT";
+
+		simple-audio-card,aux-devs = <&amp>;
+
+		simple-audio-card,bitclock-master = <&dai_codec>;
+		simple-audio-card,frame-master = <&dai_codec>;
+
+		dai_cpu: simple-audio-card,cpu {
+			sound-dai = <&aic>;
+		};
+
+		dai_codec: simple-audio-card,codec {
+			sound-dai = <&codec>;
+		};
+	};*/
+
+	keys {
+		compatible = "gpio-keys";
+
+		key {
+			label = "Power";
+			wakeup-source;
+			linux,code = <KEY_POWER>;
+			gpios = <&gpd 29 GPIO_ACTIVE_LOW>;
+		};
+	};
+
+	keyboard {
+		compatible = "gpio-matrix-keypad";
+
+		col-scan-delay-us = <100000>;
+		debounce-delay-ms = <100>;
+		wakeup-source;
+
+		col-gpios = <&gpd 2 0 &gpd 3 0 &gpd 7 0>;
+		row-gpios = <&gpd 0 0 &gpd 1 0 &gpd 15 0 &gpd 17 0>;
+		gpio-activelow;
+		//drive-inactive-cols;
+
+		pinctrl-names = "default";
+		pinctrl-0 = <&pins_keyboard>;
+
+		linux,keymap = <
+			MATRIX_KEY(0, 0, KEY_A)	/* ? */
+			MATRIX_KEY(0, 1, KEY_B)	/* ? */
+			MATRIX_KEY(0, 2, KEY_C)	/* ? */
+			MATRIX_KEY(1, 0, KEY_E)	/* ? */
+			MATRIX_KEY(1, 1, KEY_F)	/* ? */
+			MATRIX_KEY(1, 2, KEY_G)	/* ? */
+			MATRIX_KEY(2, 0, KEY_I)	/* ? */
+			MATRIX_KEY(2, 1, KEY_J)	/* ? */
+			MATRIX_KEY(2, 2, KEY_K)	/* ? */
+			MATRIX_KEY(3, 0, KEY_M)	/* ? */
+			MATRIX_KEY(3, 1, KEY_N)	/* ? */
+			MATRIX_KEY(3, 2, KEY_O)	/* ? */
+			>;
+	};
+
+	/*spi {
+		compatible = "spi-gpio";
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		sck-gpios = <&gpc 23 GPIO_ACTIVE_HIGH>;
+		mosi-gpios = <&gpc 22 GPIO_ACTIVE_HIGH>;
+		cs-gpios = <&gpc 21 GPIO_ACTIVE_LOW>;
+		num-chipselects = <1>;
+	};*/
+
+	/*usb_charger: charger {
+		compatible = "gpio-charger";
+		charger-type = "usb-sdp";
+		gpios = <&gpd 28 GPIO_ACTIVE_LOW>;
+		status-gpios = <&gpc 27 GPIO_ACTIVE_LOW>;
+	};
+
+	simple_battery: battery {
+		compatible = "simple-battery";
+		voltage-min-design-microvolt = <3600000>;
+		voltage-max-design-microvolt = <4200000>;
+	};
+
+	pmu {
+		compatible = "ingenic,jz4740-battery";
+		io-channels = <&adc INGENIC_ADC_BATTERY>;
+		io-channel-names = "battery";
+		power-supplies = <&usb_charger>;
+		monitored-battery = <&simple_battery>;
+	};
+
+	hwmon {
+		compatible = "iio-hwmon";
+		io-channels = <&adc INGENIC_ADC_AUX>;
+	};*/
+
+	panel: panel {
+		compatible = "innolux,pt035tn01";
+
+		power-supply = <&vcc>;
+
+		port {
+			panel_input: endpoint {
+				remote-endpoint = <&panel_output>;
+			};
+		};
+	};
+
+	usb_phy: usb-phy {
+		compatible = "usb-nop-xceiv";
+		#phy-cells = <0>;
+
+		vcc-supply = <&vcc>;
+	};
+};
+
+&ext {
+	clock-frequency = <12000000>;
+};
+
+&rtc_dev {
+	system-power-controller;
+};
+
+&uart0 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pins_uart0>;
+};
+
+&uart1 {
+	status = "disabled";
+};
+
+&nemc {
+	nandc: nand-controller@1 {
+		compatible = "ingenic,jz4740-nand";
+		reg = <1 0 0x4000000>;
+
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		ingenic,bch-controller = <&ecc>;
+
+		pinctrl-names = "default";
+		pinctrl-0 = <&pins_nemc>;
+
+		rb-gpios = <&gpc 30 GPIO_ACTIVE_LOW>;
+
+		nand@1 {
+			reg = <1>;
+
+			nand-ecc-step-size = <512>;
+			nand-ecc-strength = <4>;
+			nand-ecc-mode = "hw";
+			nand-is-boot-medium;
+			nand-on-flash-bbt;
+
+			partitions {
+				compatible = "fixed-partitions";
+				#address-cells = <1>;
+				#size-cells = <1>;
+
+				partition@0 {
+					label = "u-boot";
+					reg = <0x0 0x200000>;
+				};
+
+				partition@200000 {
+					label = "serial";
+					reg = <0x200000 0x200000>;
+				};
+
+				partition@400000 {
+					label = "kernel";
+					reg = <0x400000 0x400000>;
+				};
+
+				partition@800000 {
+					label = "rootfs";
+					reg = <0x800000 0x0>;
+				};
+			};
+		};
+	};
+};
+
+&lcd {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pins_lcd>;
+
+	port {
+		panel_output: endpoint {
+			remote-endpoint = <&panel_input>;
+		};
+	};
+};
+
+&udc {
+	phys = <&usb_phy>;
+};
+
+&pinctrl {
+	pins_lcd: lcd {
+		function = "lcd";
+		groups = "lcd-8bit";
+	};
+
+	pins_nemc: nemc {
+		function = "nand";
+		groups = "nand-cs1";
+	};
+
+	pins_uart0: uart0 {
+		function = "uart0";
+		groups = "uart0-data", "uart0-hwflow";
+		bias-disable;
+	};
+
+	pins_mmc: mmc {
+		mmc {
+			function = "mmc";
+			groups = "mmc-1bit", "mmc-4bit";
+			bias-disable;
+		};
+
+		mmc-gpios {
+			pins = "PB27", "PC27";
+			bias-disable;
+		};
+	};
+
+	pins_keyboard: keyboard {
+		pins = "PD2", "PD3", "PD7", "PD0", "PD1", "PD15", "PD17";
+		bias-pull-up;
+	};
+};
+
+&mmc {
+	bus-width = <4>;
+	max-frequency = <20000000>;
+	cd-gpios = <&gpb 27 GPIO_ACTIVE_HIGH>;
+	vmmc-supply = <&mmc_power>;
+
+	pinctrl-names = "default";
+	pinctrl-0 = <&pins_mmc>;
+};
+
+&tcu {
+	/* 750 kHz for the system timer and clocksource */
+	assigned-clocks = <&tcu TCU_CLK_TIMER0>, <&tcu TCU_CLK_TIMER1>;
+	assigned-clock-rates = <750000>, <750000>;
+};

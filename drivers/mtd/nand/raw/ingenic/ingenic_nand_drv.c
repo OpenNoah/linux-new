@@ -107,6 +107,41 @@ const struct mtd_ooblayout_ops qi_lb60_ooblayout_ops = {
 	.free = qi_lb60_ooblayout_free,
 };
 
+static int noah_np1380_ooblayout_ecc(struct mtd_info *mtd, int section,
+				 struct mtd_oob_region *oobregion)
+{
+	struct nand_chip *chip = mtd_to_nand(mtd);
+	struct nand_ecc_ctrl *ecc = &chip->ecc;
+
+	if (section || !ecc->total)
+		return -ERANGE;
+
+	oobregion->length = ecc->total;
+	oobregion->offset = 0;
+
+	return 0;
+}
+
+static int noah_np1380_ooblayout_free(struct mtd_info *mtd, int section,
+				  struct mtd_oob_region *oobregion)
+{
+	struct nand_chip *chip = mtd_to_nand(mtd);
+	struct nand_ecc_ctrl *ecc = &chip->ecc;
+
+	if (section)
+		return -ERANGE;
+
+	oobregion->length = mtd->oobsize - ecc->total;
+	oobregion->offset = ecc->total;
+
+	return 0;
+}
+
+const struct mtd_ooblayout_ops noah_np1380_ooblayout_ops = {
+	.ecc = noah_np1380_ooblayout_ecc,
+	.free = noah_np1380_ooblayout_free,
+};
+
 static int jz4725b_ooblayout_ecc(struct mtd_info *mtd, int section,
 				 struct mtd_oob_region *oobregion)
 {
@@ -289,9 +324,11 @@ static int ingenic_nand_attach_chip(struct nand_chip *chip)
 	if (chip->bbt_options & NAND_BBT_USE_FLASH)
 		chip->bbt_options |= NAND_BBT_NO_OOB;
 
-	/* For legacy reasons we use a different layout on the qi,lb60 board. */
+	/* For legacy reasons we use a different layout on some boards. */
 	if (of_machine_is_compatible("qi,lb60"))
 		mtd_set_ooblayout(mtd, &qi_lb60_ooblayout_ops);
+	else if (of_machine_is_compatible("noah,np1380"))
+		mtd_set_ooblayout(mtd, &noah_np1380_ooblayout_ops);
 	else
 		mtd_set_ooblayout(mtd, nfc->soc_info->oob_layout);
 

@@ -51,9 +51,9 @@ static void __activate_col(const struct matrix_keypad_platform_data *pdata,
 	if (on) {
 		gpio_direction_output(pdata->col_gpios[col], level_on);
 	} else {
-		gpio_set_value_cansleep(pdata->col_gpios[col], !level_on);
 		if (!pdata->drive_inactive_cols)
 			gpio_direction_input(pdata->col_gpios[col]);
+		gpio_set_value_cansleep(pdata->col_gpios[col], !level_on);
 	}
 }
 
@@ -137,6 +137,24 @@ static void matrix_keypad_scan(struct work_struct *work)
 
 		activate_col(pdata, col, false);
 	}
+
+#if 1
+	for (col = 0; col < pdata->num_col_gpios; col++) {
+		bool c = !!gpio_get_value_cansleep(pdata->col_gpios[col]);
+		//uint32_t cd = gpiod_get_direction(gpio_to_desc(pdata->col_gpios[col]));
+		//gpio_direction_output(pdata->col_gpios[col], 0);
+		activate_col(pdata, col, true);
+		for (row = 0; row < pdata->num_row_gpios; row++) {
+			//gpio_direction_input(pdata->row_gpios[row]);
+			udelay(5000);
+			bool r = !!gpio_get_value_cansleep(pdata->row_gpios[row]);
+			//uint32_t rd = gpiod_get_direction(gpio_to_desc(pdata->row_gpios[row]));
+			printk("kpd %d x %d: %02x x %02x -> %u x %u\n", row, col, pdata->row_gpios[row], pdata->col_gpios[col], r, c);
+		}
+		//gpio_direction_input(pdata->col_gpios[col]);
+		activate_col(pdata, col, false);
+	}
+#endif
 
 	for (col = 0; col < pdata->num_col_gpios; col++) {
 		uint32_t bits_changed;

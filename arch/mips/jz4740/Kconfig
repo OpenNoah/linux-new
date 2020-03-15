@@ -8,6 +8,11 @@ config JZ4740_QI_LB60
 	bool "Qi Hardware Ben NanoNote"
 	select MACH_JZ4740
 
+config JZ4740_NOAH_NP1380
+	bool "Innovative Noah Electronic NP1380"
+	select MACH_JZ4740
+	select HAVE_KERNEL_UNCOMPRESSED
+
 config JZ4770_GCW0
 	bool "Game Consoles Worldwide GCW Zero"
 	select MACH_JZ4770
