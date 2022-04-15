@@ -27,10 +27,45 @@
 	mmc_power: regulator@1 {
 		compatible = "regulator-fixed";
 		regulator-name = "mmc_vcc";
-		gpio = <&gpc 27 GPIO_ACTIVE_LOW>;
+		gpio = <&gpc 27 0>;
 
 		regulator-min-microvolt = <3300000>;
 		regulator-max-microvolt = <3300000>;
+	};
+
+	lcd_power: regulator@2 {
+		compatible = "regulator-fixed";
+		regulator-name = "lcd_vcc";
+		gpio = <&gpc 23 0>;
+		enable-active-high;
+
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+	};
+
+	backlight: backlight {
+		compatible = "pwm-backlight";
+		pwms = <&pwm 4 40000 0>;
+		enable-gpios = <&gpd 4 GPIO_ACTIVE_HIGH>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&pins_pwm4>;
+
+		brightness-levels = <0 16 32 48 64 80 96 112 128
+				     144 160 176 192 208 224 240 255>;
+		default-brightness-level = <12>;
+	};
+
+	panel: panel {
+		compatible = "innolux,at043tn24-18b";
+		backlight = <&backlight>;
+		power-supply = <&lcd_power>;
+		enable-gpios = <&gpc 22 GPIO_ACTIVE_LOW>;
+
+		port {
+			panel_input: endpoint {
+				remote-endpoint = <&panel_output>;
+			};
+		};
 	};
 
 	/*amp_supply: regulator@2 {
@@ -127,18 +162,6 @@
 		io-channels = <&adc INGENIC_ADC_AUX>;
 	};*/
 
-	/*panel: panel {
-		compatible = "innolux,pt035tn01";
-
-		power-supply = <&vcc>;
-
-		port {
-			panel_input: endpoint {
-				remote-endpoint = <&panel_output>;
-			};
-		};
-	};*/
-
 	usb_phy: usb-phy {
 		compatible = "usb-nop-xceiv";
 		#phy-cells = <0>;
@@ -217,7 +240,7 @@
 	};
 };
 
-/*&lcd {
+&lcd {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pins_lcd>;
 
@@ -226,17 +249,22 @@
 			remote-endpoint = <&panel_input>;
 		};
 	};
-};*/
+};
 
 &udc {
 	phys = <&usb_phy>;
 };
 
 &pinctrl {
-	/*pins_lcd: lcd {
+	pins_lcd: lcd {
 		function = "lcd";
-		groups = "lcd-8bit";
-	};*/
+		groups = "lcd-18bit";
+	};
+
+	pins_pwm4: pwm4 {
+		function = "pwm4";
+		groups = "pwm4";
+	};
 
 	pins_nemc: nemc {
 		function = "nand";
