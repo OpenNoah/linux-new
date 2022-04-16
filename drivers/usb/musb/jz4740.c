@@ -65,8 +65,9 @@ static struct musb_fifo_cfg jz4740_musb_fifo_cfg[] = {
 };
 
 static const struct musb_hdrc_config jz4740_musb_config = {
-	/* Silicon does not implement USB OTG. */
-	.multipoint	= 0,
+	/* Silicon does not implement USB OTG, so multipoint is not applicable.
+	   But jz4740 chip has another OHCI host controller, don't limit that. */
+	.multipoint	= 1,
 	/* Max EPs scanned, driver will decide which EP can be used. */
 	.num_eps	= 4,
 	/* RAMbits needed to configure EPs from table */

@@ -298,6 +298,7 @@
 	uhc: usb@13030000 {
 		compatible = "ingenic,jz4740-ohci", "generic-ohci";
 		reg = <0x13030000 0x1000>;
+		dr_mode = "host";
 
 		clocks = <&cgu JZ4740_CLK_UHC>;
 		assigned-clocks = <&cgu JZ4740_CLK_UHC>;
@@ -306,7 +307,7 @@
 		interrupt-parent = <&intc>;
 		interrupts = <3>;
 
-		status = "disabled";
+		num-ports = <1>;
 	};
 
 	udc: usb@13040000 {
