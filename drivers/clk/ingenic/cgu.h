@@ -139,6 +139,8 @@ struct ingenic_cgu_custom_info {
  * @parents: an array of the indices of potential parents of this clock
  *           within the clock_info array of the CGU, or -1 in entries
  *           which correspond to no valid parent
+ * @min_rate: minimum rate supported, only valid if max_rate is not 0
+ * @max_rate: maximum rate supported, only valid if not 0
  * @pll: information valid if type includes CGU_CLK_PLL
  * @gate: information valid if type includes CGU_CLK_GATE
  * @mux: information valid if type includes CGU_CLK_MUX
@@ -162,6 +164,8 @@ struct ingenic_cgu_clk_info {
 	} type;
 
 	int parents[4];
+	unsigned long min_rate;
+	unsigned long max_rate;
 
 	union {
 		struct ingenic_cgu_pll_info pll;

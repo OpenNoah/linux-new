@@ -69,6 +69,8 @@ static const struct ingenic_cgu_clk_info jz4740_cgu_clocks[] = {
 	[JZ4740_CLK_PLL] = {
 		"pll", CGU_CLK_PLL,
 		.parents = { JZ4740_CLK_EXT, -1, -1, -1 },
+		.min_rate = 100000000,
+		.max_rate = 500000000,
 		.pll = {
 			.reg = CGU_REG_CPPCR,
 			.rate_multiplier = 1,
@@ -139,6 +141,8 @@ static const struct ingenic_cgu_clk_info jz4740_cgu_clocks[] = {
 	[JZ4740_CLK_LCD] = {
 		"lcd", CGU_CLK_DIV | CGU_CLK_GATE,
 		.parents = { JZ4740_CLK_PLL_HALF, -1, -1, -1 },
+		.min_rate = 0,
+		.max_rate = 150000000,
 		.div = {
 			CGU_REG_CPCCR, 16, 1, 5, 22, -1, -1, 0,
 			jz4740_cgu_cpccr_div_table,
@@ -178,6 +182,8 @@ static const struct ingenic_cgu_clk_info jz4740_cgu_clocks[] = {
 	[JZ4740_CLK_UHC] = {
 		"uhc", CGU_CLK_DIV | CGU_CLK_GATE,
 		.parents = { JZ4740_CLK_PLL_HALF, -1, -1, -1 },
+		.min_rate = 48000000,
+		.max_rate = 48000000,
 		.div = { CGU_REG_UHCCDR, 0, 1, 4, -1, -1, -1 },
 		.gate = { CGU_REG_CLKGR, 14 },
 	},
@@ -185,6 +191,8 @@ static const struct ingenic_cgu_clk_info jz4740_cgu_clocks[] = {
 	[JZ4740_CLK_UDC] = {
 		"udc", CGU_CLK_MUX | CGU_CLK_DIV | CGU_CLK_GATE,
 		.parents = { JZ4740_CLK_EXT, JZ4740_CLK_PLL_HALF, -1, -1 },
+		.min_rate = 12000000,
+		.max_rate = 12000000,
 		.mux = { CGU_REG_CPCCR, 29, 1 },
 		.div = { CGU_REG_CPCCR, 23, 1, 6, -1, -1, -1 },
 		.gate = { CGU_REG_SCR, 6, true },
