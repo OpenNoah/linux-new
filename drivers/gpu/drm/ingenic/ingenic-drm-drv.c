@@ -223,11 +223,24 @@ static void ingenic_drm_crtc_atomic_enable(struct drm_crtc *crtc,
 {
 	struct ingenic_drm *priv = drm_crtc_get_priv(crtc);
 	struct ingenic_drm_private_state *priv_state;
-	unsigned int next_id;
+	unsigned int var, next_id;
 
 	priv_state = ingenic_drm_get_priv_state(priv, state);
 	if (WARN_ON(IS_ERR(priv_state)))
 		return;
+
+	/*
+	 * LCD controller might have been already enabled by bootloader,
+	 * disale it first to clear pending DMA transfers.
+	 */
+	regmap_read(priv->map, JZ_REG_LCD_CTRL, &var);
+	if (var & JZ_LCD_CTRL_ENABLE) {
+		regmap_update_bits(priv->map, JZ_REG_LCD_CTRL,
+				   JZ_LCD_CTRL_DISABLE, JZ_LCD_CTRL_DISABLE);
+		regmap_read_poll_timeout(priv->map, JZ_REG_LCD_STATE, var,
+					 var & JZ_LCD_STATE_DISABLED,
+					 1000, 0);
+	}
 
 	regmap_write(priv->map, JZ_REG_LCD_STATE, 0);
 
@@ -1011,7 +1024,7 @@ static int ingenic_drm_bind(struct device *dev, bool has_components)
 	struct ingenic_drm_bridge *ib;
 	struct drm_device *drm;
 	void __iomem *base;
-	long parent_rate;
+	long parent_rate, rate;
 	unsigned int i, clone_mask = 0;
 	int ret, irq;
 
@@ -1254,7 +1267,8 @@ static int ingenic_drm_bind(struct device *dev, bool has_components)
 		 * check for the LCD device clock everytime we do a mode change,
 		 * we set the LCD device clock to the highest rate possible.
 		 */
-		ret = clk_set_rate(priv->lcd_clk, parent_rate);
+		rate = clk_round_rate(priv->lcd_clk, parent_rate);
+		ret = clk_set_rate(priv->lcd_clk, rate);
 		if (ret) {
 			dev_err(dev, "Unable to set LCD clock rate\n");
 			goto err_pixclk_disable;
@@ -1332,13 +1346,13 @@ static void ingenic_drm_unbind(struct device *dev)
 	struct ingenic_drm *priv = dev_get_drvdata(dev);
 	struct clk *parent_clk = clk_get_parent(priv->pix_clk);
 
+	drm_dev_unregister(&priv->drm);
+	drm_atomic_helper_shutdown(&priv->drm);
+
 	clk_notifier_unregister(parent_clk, &priv->clock_nb);
 	if (priv->lcd_clk)
 		clk_disable_unprepare(priv->lcd_clk);
 	clk_disable_unprepare(priv->pix_clk);
-
-	drm_dev_unregister(&priv->drm);
-	drm_atomic_helper_shutdown(&priv->drm);
 }
 
 static const struct component_master_ops ingenic_master_ops = {
