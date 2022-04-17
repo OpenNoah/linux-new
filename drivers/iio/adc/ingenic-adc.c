@@ -40,7 +40,6 @@
 #define JZ_ADC_REG_CFG_VBAT_SEL		BIT(30)
 #define JZ_ADC_REG_CFG_TOUCH_OPS_MASK	(BIT(31) | GENMASK(23, 10))
 #define JZ_ADC_REG_ADCLK_CLKDIV_LSB	0
-#define JZ4725B_ADC_REG_ADCLK_CLKDIV10US_LSB	16
 #define JZ4770_ADC_REG_ADCLK_CLKDIV10US_LSB	8
 #define JZ4770_ADC_REG_ADCLK_CLKDIVMS_LSB	16
 
@@ -68,10 +67,6 @@
 #define JZ_ADC_AUX_VREF_BITS			12
 #define JZ_ADC_BATTERY_LOW_VREF			2500
 #define JZ_ADC_BATTERY_LOW_VREF_BITS		12
-#define JZ4725B_ADC_BATTERY_HIGH_VREF		7500
-#define JZ4725B_ADC_BATTERY_HIGH_VREF_BITS	10
-#define JZ4740_ADC_BATTERY_HIGH_VREF		(7500 * 0.986)
-#define JZ4740_ADC_BATTERY_HIGH_VREF_BITS	12
 #define JZ4760_ADC_BATTERY_VREF			2500
 #define JZ4770_ADC_BATTERY_VREF			1200
 #define JZ4770_ADC_BATTERY_VREF_BITS		12
@@ -279,24 +274,6 @@ static int ingenic_adc_write_raw(struct iio_dev *iio_dev,
 	}
 }
 
-static const int jz4725b_adc_battery_raw_avail[] = {
-	0, 1, (1 << JZ_ADC_BATTERY_LOW_VREF_BITS) - 1,
-};
-
-static const int jz4725b_adc_battery_scale_avail[] = {
-	JZ4725B_ADC_BATTERY_HIGH_VREF, JZ4725B_ADC_BATTERY_HIGH_VREF_BITS,
-	JZ_ADC_BATTERY_LOW_VREF, JZ_ADC_BATTERY_LOW_VREF_BITS,
-};
-
-static const int jz4740_adc_battery_raw_avail[] = {
-	0, 1, (1 << JZ_ADC_BATTERY_LOW_VREF_BITS) - 1,
-};
-
-static const int jz4740_adc_battery_scale_avail[] = {
-	JZ4740_ADC_BATTERY_HIGH_VREF, JZ4740_ADC_BATTERY_HIGH_VREF_BITS,
-	JZ_ADC_BATTERY_LOW_VREF, JZ_ADC_BATTERY_LOW_VREF_BITS,
-};
-
 static const int jz4760_adc_battery_scale_avail[] = {
 	JZ4760_ADC_BATTERY_VREF, JZ4770_ADC_BATTERY_VREF_BITS,
 };
@@ -308,42 +285,6 @@ static const int jz4770_adc_battery_raw_avail[] = {
 static const int jz4770_adc_battery_scale_avail[] = {
 	JZ4770_ADC_BATTERY_VREF, JZ4770_ADC_BATTERY_VREF_BITS,
 };
-
-static int jz4725b_adc_init_clk_div(struct device *dev, struct ingenic_adc *adc)
-{
-	struct clk *parent_clk;
-	unsigned long parent_rate, rate;
-	unsigned int div_main, div_10us;
-
-	parent_clk = clk_get_parent(adc->clk);
-	if (!parent_clk) {
-		dev_err(dev, "ADC clock has no parent\n");
-		return -ENODEV;
-	}
-	parent_rate = clk_get_rate(parent_clk);
-
-	/*
-	 * The JZ4725B ADC works at 500 kHz to 8 MHz.
-	 * We pick the highest rate possible.
-	 * In practice we typically get 6 MHz, half of the 12 MHz EXT clock.
-	 */
-	div_main = DIV_ROUND_UP(parent_rate, 8000000);
-	div_main = clamp(div_main, 1u, 64u);
-	rate = parent_rate / div_main;
-	if (rate < 500000 || rate > 8000000) {
-		dev_err(dev, "No valid divider for ADC main clock\n");
-		return -EINVAL;
-	}
-
-	/* We also need a divider that produces a 10us clock. */
-	div_10us = DIV_ROUND_UP(rate, 100000);
-
-	writel(((div_10us - 1) << JZ4725B_ADC_REG_ADCLK_CLKDIV10US_LSB) |
-	       (div_main - 1) << JZ_ADC_REG_ADCLK_CLKDIV_LSB,
-	       adc->base + JZ_ADC_REG_ADCLK);
-
-	return 0;
-}
 
 static int jz4770_adc_init_clk_div(struct device *dev, struct ingenic_adc *adc)
 {
@@ -382,29 +323,6 @@ static int jz4770_adc_init_clk_div(struct device *dev, struct ingenic_adc *adc)
 
 	return 0;
 }
-
-static const struct iio_chan_spec jz4740_channels[] = {
-	{
-		.extend_name = "aux",
-		.type = IIO_VOLTAGE,
-		.info_mask_separate = BIT(IIO_CHAN_INFO_RAW) |
-				      BIT(IIO_CHAN_INFO_SCALE),
-		.indexed = 1,
-		.channel = INGENIC_ADC_AUX,
-		.scan_index = -1,
-	},
-	{
-		.extend_name = "battery",
-		.type = IIO_VOLTAGE,
-		.info_mask_separate = BIT(IIO_CHAN_INFO_RAW) |
-				      BIT(IIO_CHAN_INFO_SCALE),
-		.info_mask_separate_available = BIT(IIO_CHAN_INFO_RAW) |
-						BIT(IIO_CHAN_INFO_SCALE),
-		.indexed = 1,
-		.channel = INGENIC_ADC_BATTERY,
-		.scan_index = -1,
-	},
-};
 
 static const struct iio_chan_spec jz4760_channels[] = {
 	{
@@ -543,34 +461,6 @@ static const struct iio_chan_spec jz4770_channels[] = {
 		.channel = INGENIC_ADC_AUX2,
 		.scan_index = -1,
 	},
-};
-
-static const struct ingenic_adc_soc_data jz4725b_adc_soc_data = {
-	.battery_high_vref = JZ4725B_ADC_BATTERY_HIGH_VREF,
-	.battery_high_vref_bits = JZ4725B_ADC_BATTERY_HIGH_VREF_BITS,
-	.battery_raw_avail = jz4725b_adc_battery_raw_avail,
-	.battery_raw_avail_size = ARRAY_SIZE(jz4725b_adc_battery_raw_avail),
-	.battery_scale_avail = jz4725b_adc_battery_scale_avail,
-	.battery_scale_avail_size = ARRAY_SIZE(jz4725b_adc_battery_scale_avail),
-	.battery_vref_mode = true,
-	.has_aux_md = false,
-	.channels = jz4740_channels,
-	.num_channels = ARRAY_SIZE(jz4740_channels),
-	.init_clk_div = jz4725b_adc_init_clk_div,
-};
-
-static const struct ingenic_adc_soc_data jz4740_adc_soc_data = {
-	.battery_high_vref = JZ4740_ADC_BATTERY_HIGH_VREF,
-	.battery_high_vref_bits = JZ4740_ADC_BATTERY_HIGH_VREF_BITS,
-	.battery_raw_avail = jz4740_adc_battery_raw_avail,
-	.battery_raw_avail_size = ARRAY_SIZE(jz4740_adc_battery_raw_avail),
-	.battery_scale_avail = jz4740_adc_battery_scale_avail,
-	.battery_scale_avail_size = ARRAY_SIZE(jz4740_adc_battery_scale_avail),
-	.battery_vref_mode = true,
-	.has_aux_md = false,
-	.channels = jz4740_channels,
-	.num_channels = ARRAY_SIZE(jz4740_channels),
-	.init_clk_div = NULL, /* no ADCLK register on JZ4740 */
 };
 
 static const struct ingenic_adc_soc_data jz4760_adc_soc_data = {
@@ -894,6 +784,7 @@ static int ingenic_adc_probe(struct platform_device *pdev)
 	ret = devm_add_action_or_reset(dev, ingenic_adc_clk_cleanup, adc->clk);
 	if (ret) {
 		dev_err(dev, "Unable to add action\n");
+		clk_unprepare(adc->clk);
 		return ret;
 	}
 
@@ -912,8 +803,6 @@ static int ingenic_adc_probe(struct platform_device *pdev)
 }
 
 static const struct of_device_id ingenic_adc_of_match[] = {
-	{ .compatible = "ingenic,jz4725b-adc", .data = &jz4725b_adc_soc_data, },
-	{ .compatible = "ingenic,jz4740-adc", .data = &jz4740_adc_soc_data, },
 	{ .compatible = "ingenic,jz4760-adc", .data = &jz4760_adc_soc_data, },
 	{ .compatible = "ingenic,jz4760b-adc", .data = &jz4760_adc_soc_data, },
 	{ .compatible = "ingenic,jz4770-adc", .data = &jz4770_adc_soc_data, },

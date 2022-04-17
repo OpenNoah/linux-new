@@ -502,12 +502,34 @@ config INA2XX_ADC
 config INGENIC_ADC
 	tristate "Ingenic JZ47xx SoCs ADC driver"
 	depends on MIPS || COMPILE_TEST
+	depends on !MACH_JZ4740
 	select IIO_BUFFER
 	help
 	  Say yes here to build support for the Ingenic JZ47xx SoCs ADC unit.
 
 	  This driver can also be built as a module. If so, the module will be
 	  called ingenic_adc.
+
+config INGENIC_JZ4740_ADC
+	tristate "Ingenic JZ4740 SoCs ADC driver"
+	depends on MIPS || COMPILE_TEST
+	depends on MACH_JZ4740
+	select IIO_BUFFER
+	help
+	  Say yes here to build support for the Ingenic JZ4740 SoC ADC unit.
+
+	  This driver can also be built as a module. If so, the module will be
+	  called jz4740_adc.
+
+if INGENIC_JZ4740_ADC
+
+config INGENIC_JZ4740_ADC_KFIFO_BUF
+	bool "Enable kfifo buffer support for debugging"
+	select IIO_KFIFO_BUF
+	help
+	  Say yes here to allocate a simple kfifo buffer for debugging jz4740_adc.
+
+endif # INGENIC_JZ4740_ADC
 
 config INTEL_MRFLD_ADC
 	tristate "Intel Merrifield Basin Cove ADC driver"
