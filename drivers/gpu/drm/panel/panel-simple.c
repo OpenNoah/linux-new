@@ -2179,6 +2179,31 @@ static const struct panel_desc innolux_n156bge_l21 = {
 	.connector_type = DRM_MODE_CONNECTOR_LVDS,
 };
 
+static const struct drm_display_mode innolux_pt035tn01_mode = {
+	.clock = 6035,
+	.hdisplay = 320,
+	.hsync_start = 320 + 10,
+	.hsync_end = 320 + 10 + 1,
+	.htotal = 320 + 10 + 1 + 50,
+	.vdisplay = 240,
+	.vsync_start = 240 + 10,
+	.vsync_end = 240 + 10 + 1,
+	.vtotal = 240 + 10 + 1 + 14,
+	.flags = DRM_MODE_FLAG_NHSYNC | DRM_MODE_FLAG_NVSYNC,
+};
+
+static const struct panel_desc innolux_pt035tn01 = {
+	.modes = &innolux_pt035tn01_mode,
+	.num_modes = 1,
+	.bpc = 8,
+	.size = {
+		.width = 70,
+		.height = 53,
+	},
+	.bus_format = MEDIA_BUS_FMT_RGB888_3X8,
+	.bus_flags = DRM_BUS_FLAG_DE_HIGH | DRM_BUS_FLAG_PIXDATA_DRIVE_NEGEDGE,
+};
+
 static const struct drm_display_mode innolux_zj070na_01p_mode = {
 	.clock = 51501,
 	.hdisplay = 1024,
@@ -3845,6 +3870,9 @@ static const struct of_device_id platform_of_match[] = {
 	}, {
 		.compatible = "innolux,n156bge-l21",
 		.data = &innolux_n156bge_l21,
+	}, {
+		.compatible = "innolux,pt035tn01",
+		.data = &innolux_pt035tn01,
 	}, {
 		.compatible = "innolux,zj070na-01p",
 		.data = &innolux_zj070na_01p,

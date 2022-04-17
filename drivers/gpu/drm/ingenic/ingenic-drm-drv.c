@@ -776,15 +776,10 @@ static int ingenic_drm_bridge_atomic_check(struct drm_bridge *bridge,
 	case MEDIA_BUS_FMT_RGB888_3X8_DELTA:
 		/*
 		 * The LCD controller expects timing values in dot-clock ticks,
-		 * which is 3x the timing values in pixels when using a 3x8-bit
-		 * display; but it will count the display area size in pixels
-		 * either way. Go figure.
+		 * which actually means number of pixels. When using a 3x8-bit
+		 * display, only pixel clock needs to be 3x.
 		 */
 		mode->crtc_clock = mode->clock * 3;
-		mode->crtc_hsync_start = mode->hsync_start * 3 - mode->hdisplay * 2;
-		mode->crtc_hsync_end = mode->hsync_end * 3 - mode->hdisplay * 2;
-		mode->crtc_hdisplay = mode->hdisplay;
-		mode->crtc_htotal = mode->htotal * 3 - mode->hdisplay * 2;
 		return 0;
 	case MEDIA_BUS_FMT_RGB565_1X16:
 	case MEDIA_BUS_FMT_RGB666_1X18:
