@@ -177,6 +177,17 @@
 		};
 	};
 
+	touchscreen {
+		compatible = "resistive-adc-touch";
+		touchscreen-min-pressure = <50000>;
+		io-channels = <&adc INGENIC_ADC_TOUCH_XYZ_XD>,
+			      <&adc INGENIC_ADC_TOUCH_XYZ_YD>,
+			      <&adc INGENIC_ADC_TOUCH_XYZ_Z1>,
+			      <&adc INGENIC_ADC_TOUCH_XYZ_Z2>;
+		io-channel-names = "x", "y", "z1", "z2";
+		touchscreen-x-plate-ohms = <1000>;
+	};
+
 	/*spi {
 		compatible = "spi-gpio";
 		#address-cells = <1>;
@@ -207,11 +218,6 @@
 		io-channel-names = "battery";
 		power-supplies = <&usb_charger>;
 		monitored-battery = <&simple_battery>;
-	};
-
-	hwmon {
-		compatible = "iio-hwmon";
-		io-channels = <&adc INGENIC_ADC_AUX>;
 	};*/
 };
 
