@@ -33,6 +33,37 @@
 		regulator-max-microvolt = <3300000>;
 	};
 
+	backlight: backlight {
+		compatible = "pwm-backlight";
+		pwms = <&pwm 4 40000 0>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&pins_pwm4>;
+
+		brightness-levels = <0 16 32 48 64 80 96 112 128
+				     144 160 176 192 208 224 240 255>;
+		default-brightness-level = <12>;
+	};
+
+	panel: panel {
+		compatible = "innolux,pt035tn01";
+		backlight = <&backlight>;
+		power-supply = <&vcc>;
+		enable-gpios = <&gpc 9 GPIO_ACTIVE_HIGH>;
+
+		port {
+			panel_input: endpoint {
+				remote-endpoint = <&panel_output>;
+			};
+		};
+	};
+
+	usb_phy: usb-phy {
+		compatible = "usb-nop-xceiv";
+		#phy-cells = <0>;
+
+		vcc-supply = <&vcc>;
+	};
+
 	/*amp_supply: regulator@2 {
 		compatible = "regulator-fixed";
 		regulator-name = "amp_supply";
@@ -121,16 +152,16 @@
 			>;
 	};
 
-	/*spi {
-		compatible = "spi-gpio";
-		#address-cells = <1>;
-		#size-cells = <0>;
-
-		sck-gpios = <&gpc 23 GPIO_ACTIVE_HIGH>;
-		mosi-gpios = <&gpc 22 GPIO_ACTIVE_HIGH>;
-		cs-gpios = <&gpc 21 GPIO_ACTIVE_LOW>;
-		num-chipselects = <1>;
-	};*/
+	touchscreen {
+		compatible = "resistive-adc-touch";
+		touchscreen-min-pressure = <50000>;
+		io-channels = <&adc INGENIC_ADC_TOUCH_XYZ_XD>,
+			      <&adc INGENIC_ADC_TOUCH_XYZ_YD>,
+			      <&adc INGENIC_ADC_TOUCH_XYZ_Z1>,
+			      <&adc INGENIC_ADC_TOUCH_XYZ_Z2>;
+		io-channel-names = "x", "y", "z1", "z2";
+		touchscreen-x-plate-ohms = <1000>;
+	};
 
 	/*usb_charger: charger {
 		compatible = "gpio-charger";
@@ -151,31 +182,7 @@
 		io-channel-names = "battery";
 		power-supplies = <&usb_charger>;
 		monitored-battery = <&simple_battery>;
-	};
-
-	hwmon {
-		compatible = "iio-hwmon";
-		io-channels = <&adc INGENIC_ADC_AUX>;
 	};*/
-
-	panel: panel {
-		compatible = "innolux,pt035tn01";
-
-		power-supply = <&vcc>;
-
-		port {
-			panel_input: endpoint {
-				remote-endpoint = <&panel_output>;
-			};
-		};
-	};
-
-	usb_phy: usb-phy {
-		compatible = "usb-nop-xceiv";
-		#phy-cells = <0>;
-
-		vcc-supply = <&vcc>;
-	};
 };
 
 &ext {
@@ -267,6 +274,11 @@
 	pins_lcd: lcd {
 		function = "lcd";
 		groups = "lcd-8bit";
+	};
+
+	pins_pwm4: pwm4 {
+		function = "pwm4";
+		groups = "pwm4";
 	};
 
 	pins_nemc: nemc {
