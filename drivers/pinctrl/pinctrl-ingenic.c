@@ -3416,7 +3416,12 @@ static void ingenic_gpio_irq_disable(struct irq_data *irqd)
 	if (jzgc->jzpc->info->version >= ID_JZ4770)
 		ingenic_gpio_set_bit(jzgc, JZ4770_GPIO_INT, irq, false);
 	else if (jzgc->jzpc->info->version >= ID_JZ4740)
-		ingenic_gpio_set_bit(jzgc, JZ4740_GPIO_SELECT, irq, false);
+		/*
+		 * Only mask the interrupt, don't change the SELECT register,
+		 * as the SELECT register also switches GPIO to IN/OUT mode.
+		 * ingenic_gpio_set_bit(jzgc, JZ4740_GPIO_SELECT, irq, false);
+		 */
+		;
 	else
 		ingenic_gpio_set_bit(jzgc, JZ4730_GPIO_GPIER, irq, false);
 }
