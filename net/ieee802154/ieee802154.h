@@ -21,6 +21,10 @@
 int __init ieee802154_nl_init(void);
 void __exit ieee802154_nl_exit(void);
 
+#include <net/netlink.h>
+
+extern const struct nla_policy ieee802154_policy[];
+
 #define IEEE802154_OP(_cmd, _func)			\
 	{						\
 		.cmd	= _cmd,				\

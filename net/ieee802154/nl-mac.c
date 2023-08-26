@@ -263,7 +263,7 @@ static int ieee802154_nl_fill_iface(struct sk_buff *msg, u32 pid,
 	if (!hdr)
 		goto out;
 
-	phy = ieee802154_mlme_ops(dev)->get_phy(dev);
+	phy = simple_mlme_ops(dev)->get_phy(dev);
 	BUG_ON(!phy);
 
 	NLA_PUT_STRING(msg, IEEE802154_ATTR_DEV_NAME, dev->name);

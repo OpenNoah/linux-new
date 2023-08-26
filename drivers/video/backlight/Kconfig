@@ -59,6 +59,13 @@ config LCD_LTV350QV
 
 	  The LTV350QV panel is present on all ATSTK1000 boards.
 
+config LCD_ILI8960
+	tristate "Ilitek ili8960 LCD driver"
+	depends on LCD_CLASS_DEVICE && SPI
+	default n
+	help
+	  Driver for the Ilitek ili8960 LCD controller chip.
+
 config LCD_ILI9320
 	tristate
 	help

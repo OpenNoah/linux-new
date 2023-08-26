@@ -2552,7 +2552,8 @@ static int fbcon_set_font(struct vc_data *vc, struct console_font *font, unsigne
 	int size;
 	int i, csum;
 	u8 *new_data, *data = font->data;
-	int pitch = (font->width+7) >> 3;
+	u8 std_font = *((u32*)data) != 0x6a127efd;
+	int pitch = std_font ? (font->width+7) >> 3 : 4 * font->width;
 
 	/* Is there a reason why fbconsole couldn't handle any charcount >256?
 	 * If not this check should be changed to charcount < 256 */
@@ -2571,6 +2572,7 @@ static int fbcon_set_font(struct vc_data *vc, struct console_font *font, unsigne
 	size = h * pitch * charcount;
 
 	new_data = kmalloc(FONT_EXTRA_WORDS * sizeof(int) + size, GFP_USER);
+	DPRINTK(KERN_INFO "fbcon_set_font size:%d\n", size);
 
 	if (!new_data)
 		return -ENOMEM;
@@ -2579,8 +2581,14 @@ static int fbcon_set_font(struct vc_data *vc, struct console_font *font, unsigne
 	FNTSIZE(new_data) = size;
 	FNTCHARCNT(new_data) = charcount;
 	REFCOUNT(new_data) = 0;	/* usage counter */
-	for (i=0; i< charcount; i++) {
-		memcpy(new_data + i*h*pitch, data +  i*32*pitch, h*pitch);
+	if ( std_font) {
+		for (i=0; i< charcount; i++) {
+			memcpy(new_data + i*h*pitch, data +  i*32*pitch,
+				h*pitch);
+		}
+	}
+	else {
+		memcpy( new_data, data, size);
 	}
 
 	/* Since linux has a nice crc32 function use it for counting font

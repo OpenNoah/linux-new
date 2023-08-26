@@ -259,7 +259,7 @@ static struct ieee802154_mlme_ops fake_mlme = {
 	.start_req = fake_start_req,
 	.scan_req = fake_scan_req,
 
-	.get_phy = fake_get_phy,
+	.wpan_ops.get_phy = fake_get_phy,
 
 	.get_pan_id = fake_get_pan_id,
 	.get_short_addr = fake_get_short_addr,
@@ -390,6 +390,16 @@ static int __devinit ieee802154fake_probe(struct platform_device *pdev)
 
 	priv = netdev_priv(dev);
 	priv->phy = phy;
+
+	/*
+	 * If the name is a format string the caller wants us to do a
+	 * name allocation.
+	 */
+	if (strchr(dev->name, '%')) {
+		err = dev_alloc_name(dev, dev->name);
+		if (err < 0)
+			goto out;
+	}
 
 	wpan_phy_set_dev(phy, &pdev->dev);
 	SET_NETDEV_DEV(dev, &phy->dev);

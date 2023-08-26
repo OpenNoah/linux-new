@@ -17,6 +17,7 @@
 #define __MIPS_JZ4740_CLOCK_H__
 
 #include <linux/list.h>
+#include <linux/types.h>
 
 struct jz4740_clock_board_data {
 	unsigned long ext_rate;
@@ -62,6 +63,9 @@ struct clk {
 #define JZ4740_CLK_NOT_GATED ((uint32_t)-1)
 
 int clk_is_enabled(struct clk *clk);
+
+int clk_main_set_dividers(bool immediate, unsigned int cdiv, unsigned int hdiv,
+			  unsigned int mdiv, unsigned int pdiv);
 
 #ifdef CONFIG_DEBUG_FS
 void jz4740_clock_debugfs_init(void);

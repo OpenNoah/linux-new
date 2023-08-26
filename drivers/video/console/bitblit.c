@@ -105,6 +105,12 @@ static inline void bit_putcs_aligned(struct vc_data *vc, struct fb_info *info,
 	info->fbops->fb_imageblit(info, image);
 }
 
+/* info:  details of the framebuffer
+ * image: the off-screen image in which the character (sub)string is being
+ *        prepared
+ * dst:   a pointer to the top-left pixel in the off-screen image where the
+ *        character (sub)string should go
+ */
 static inline void bit_putcs_unaligned(struct vc_data *vc,
 				       struct fb_info *info, const u16 *s,
 				       u32 attr, u32 cnt, u32 d_pitch,
@@ -140,12 +146,62 @@ static inline void bit_putcs_unaligned(struct vc_data *vc,
 
 }
 
+void inline draw_glyph_row_inv( int pixels_across_glyph, u8 *src, u8 *target) {
+	u32 *pixel_on_glyph_sheet = (u32*) src;
+	u32 *pixel_on_screen      = (u32*) target;
+
+	while( pixels_across_glyph--) {
+		*pixel_on_screen = ~(*pixel_on_glyph_sheet);
+		++ pixel_on_glyph_sheet;
+		++ pixel_on_screen;
+	}
+}
+
+void inline draw_glyph_row_75( int pixels_across_glyph, u8 *src, u8 *target) {
+	u32 pixel;
+	u32 *pixel_on_glyph_sheet = (u32*) src;
+	u32 *pixel_on_screen      = (u32*) target;
+	/* Copy the pixels at 75% brightness */
+	while( pixels_across_glyph--) {
+		pixel = *pixel_on_glyph_sheet;
+		/* This is a cheeky way of multiplying by 0.75 */
+		pixel = ( pixel >> 1) & 0x7f7f7f7f;
+		pixel += ( pixel >> 1) & 0x7f7f7f7f;
+		*pixel_on_screen = pixel;
+		++ pixel_on_glyph_sheet;
+		++ pixel_on_screen;
+	}
+}
+
+/*
+ * width:    the number of bytes required to store a single row of pixels from
+ *           a glyph
+ * cellsize: the number of bytes required to store the pixels for a single
+ *           glyph
+ * maxcnt:   the maximum number of characters that can be blasted to the screen
+ *           at one time ( limited by the amount of video RAM available for a
+ *           (sub)string of characters)
+ * The NanoNote has 32-bits per pixel arranged BGRA
+ * info->fix.line_length: the number of bytes to advance through the frame
+ *                        buffer in order to get from the address of a pixel to
+ *                        the address of the pixel directly below it
+ * screen_row_hop: the number of 32-bit words to advance through the frame
+ *                 buffer in order to get from the address of a pixel to the
+ *                 address of the pixel directly below it on the screen
+ * glyph_on_screen: the address of the pixel on screen where the top-left of
+ *                  the next glyph should go
+ * row_on_screen: the address of the pixel on screen where the next row of
+ *                pixels from the glyph should go
+ * row_on_glyph_sheet: pointer within font.data ( the glyph sheet) of the
+ *                     left-most pixel from the next row to be drawn
+ */
 static void bit_putcs(struct vc_data *vc, struct fb_info *info,
 		      const unsigned short *s, int count, int yy, int xx,
 		      int fg, int bg)
 {
 	struct fb_image image;
-	u32 width = DIV_ROUND_UP(vc->vc_font.width, 8);
+	u8 std_font = *((u32*)vc->vc_font.data) != 0x6a127efd;
+	u32 width = std_font ? DIV_ROUND_UP(vc->vc_font.width, 8) : 4 * vc->vc_font.width;
 	u32 cellsize = width * vc->vc_font.height;
 	u32 maxcnt = info->pixmap.size/cellsize;
 	u32 scan_align = info->pixmap.scan_align - 1;
@@ -153,6 +209,10 @@ static void bit_putcs(struct vc_data *vc, struct fb_info *info,
 	u32 mod = vc->vc_font.width % 8, cnt, pitch, size;
 	u32 attribute = get_attribute(info, scr_readw(s));
 	u8 *dst, *buf = NULL;
+	u32 screen_row_hop;
+	u16 charmask;
+	u8 *row_on_glyph_sheet, *glyph_on_screen, *row_on_screen;
+	u8 code_point, rows_left;
 
 	image.fg_color = fg;
 	image.bg_color = bg;
@@ -167,31 +227,73 @@ static void bit_putcs(struct vc_data *vc, struct fb_info *info,
 			return;
 	}
 
-	while (count) {
-		if (count > maxcnt)
-			cnt = maxcnt;
-		else
-			cnt = count;
+	if ( std_font) {
+		while (count) {
+			if (count > maxcnt)
+				cnt = maxcnt;
+			else
+				cnt = count;
 
-		image.width = vc->vc_font.width * cnt;
-		pitch = DIV_ROUND_UP(image.width, 8) + scan_align;
-		pitch &= ~scan_align;
-		size = pitch * image.height + buf_align;
-		size &= ~buf_align;
-		dst = fb_get_buffer_offset(info, &info->pixmap, size);
-		image.data = dst;
+			image.width = vc->vc_font.width * cnt;
+			pitch = DIV_ROUND_UP(image.width, 8) + scan_align;
+			pitch &= ~scan_align;
+			size = pitch * image.height + buf_align;
+			size &= ~buf_align;
+			dst = fb_get_buffer_offset(info, &info->pixmap, size);
+			image.data = dst;
 
-		if (!mod)
-			bit_putcs_aligned(vc, info, s, attribute, cnt, pitch,
-					  width, cellsize, &image, buf, dst);
-		else
-			bit_putcs_unaligned(vc, info, s, attribute, cnt,
-					    pitch, width, cellsize, &image,
-					    buf, dst);
+			if (!mod)
+				bit_putcs_aligned(vc, info, s, attribute, cnt,
+						  pitch, width, cellsize,
+						  &image, buf, dst);
+			else
+				bit_putcs_unaligned(vc, info, s, attribute, cnt,
+						    pitch, width, cellsize,
+						    &image, buf, dst);
 
-		image.dx += cnt * vc->vc_font.width;
-		count -= cnt;
-		s += cnt;
+			image.dx += cnt * vc->vc_font.width;
+			count -= cnt;
+			s += cnt;
+		}
+	}
+	else { /* The font is not a standard 1-bit font */
+		charmask = vc->vc_hi_font_mask ? 0x1ff : 0xff;
+		screen_row_hop = info->fix.line_length;
+		glyph_on_screen = info->screen_base +
+				  screen_row_hop * image.dy +
+				  4 * image.dx;
+		/* While there are still characters to draw.. */
+		while (count--) {
+			code_point = scr_readw(s++) & charmask;
+			row_on_glyph_sheet = vc->vc_font.data +
+					     cellsize * code_point;
+			/* Draw every row of the glyph */
+			row_on_screen = glyph_on_screen;
+			rows_left = vc->vc_font.height;
+			while( rows_left--)
+			{
+				/* If the background color is NOT black then do
+				 * reverse video */
+				if ( 0 < bg) {
+					draw_glyph_row_inv( vc->vc_font.width,
+							    row_on_glyph_sheet,
+							    row_on_screen);
+				}
+				/* If the foreground color is high-intensity */
+				else if ( 8 <= fg) {
+					memcpy( row_on_screen,
+						row_on_glyph_sheet, width);
+				}
+				else {
+					draw_glyph_row_75( vc->vc_font.width,
+							   row_on_glyph_sheet,
+							   row_on_screen);
+				}
+				row_on_glyph_sheet += width;
+				row_on_screen += screen_row_hop;
+			}
+			glyph_on_screen += width;
+		}
 	}
 
 	/* buf is always NULL except when in monochrome mode, so in this case
@@ -234,6 +336,29 @@ static void bit_clear_margins(struct vc_data *vc, struct fb_info *info,
 	}
 }
 
+static void bgra_cursor( struct vc_data *vc, struct fb_info *info, short c,
+			 struct fb_cursor *cursor)
+{
+	u32  x = cursor->image.dx;
+	u32  y = cursor->image.dy;
+	u32  gw = vc->vc_font.width;
+	u32  gh = vc->vc_font.height;
+	u32  *pixel;
+
+	/* Draw the glyph to the screen */
+	bit_putcs( vc, info, &c, 1, y/gh, x/gw, 0, 0);
+
+	if ( cursor->enable) {
+		/* Invert the last row of pixels */
+		pixel = (u32*) ( info->screen_base +
+				 info->fix.line_length * ( y + gh - 1) + 4 * x);
+		while ( gw--) {
+			*pixel ^= 0xffffffff;
+			++ pixel;
+		}
+	}
+}
+
 static void bit_cursor(struct vc_data *vc, struct fb_info *info, int mode,
 		       int softback_lines, int fg, int bg)
 {
@@ -245,6 +370,7 @@ static void bit_cursor(struct vc_data *vc, struct fb_info *info, int mode,
 	int attribute, use_sw = (vc->vc_cursor_type & 0x10);
 	int err = 1;
 	char *src;
+	u8 std_font = *((u32*)vc->vc_font.data) != 0x6a127efd;
 
 	cursor.set = 0;
 
@@ -383,8 +509,14 @@ static void bit_cursor(struct vc_data *vc, struct fb_info *info, int mode,
 	if (info->fbops->fb_cursor)
 		err = info->fbops->fb_cursor(info, &cursor);
 
-	if (err)
-		soft_cursor(info, &cursor);
+	if (err) {
+		if ( std_font) {
+			soft_cursor(info, &cursor);
+		}
+		else {
+			bgra_cursor( vc, info, c, &cursor);
+		}
+	}
 
 	ops->cursor_reset = 0;
 }

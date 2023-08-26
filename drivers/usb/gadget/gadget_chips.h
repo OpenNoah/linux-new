@@ -36,6 +36,7 @@
 #define gadget_is_fsl_usb2(g)		(!strcmp("fsl-usb2-udc", (g)->name))
 #define gadget_is_goku(g)		(!strcmp("goku_udc", (g)->name))
 #define gadget_is_imx(g)		(!strcmp("imx_udc", (g)->name))
+#define gadget_is_jz4740(g)		(!strcmp("ingenic_hsusb", (g)->name))
 #define gadget_is_langwell(g)		(!strcmp("langwell_udc", (g)->name))
 #define gadget_is_m66592(g)		(!strcmp("m66592_udc", (g)->name))
 #define gadget_is_musbhdrc(g)		(!strcmp("musb-hdrc", (g)->name))
@@ -118,6 +119,8 @@ static inline int usb_gadget_controller_number(struct usb_gadget *gadget)
 		return 0x31;
 	else if (gadget_is_dwc3(gadget))
 		return 0x32;
+	else if (gadget_is_jz4740(gadget))
+		return 0x33;
 
 	return -ENOENT;
 }

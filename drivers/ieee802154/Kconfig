@@ -10,13 +10,64 @@ menuconfig IEEE802154_DRIVERS
 	  If you say N, all options in this submenu will be skipped and
 	  disabled.
 
+config IEEE802154_DRIVER_DEBUG
+	bool "Driver debugging messages"
+	depends on IEEE802154_DRIVERS
+	default y
+	help
+	  Say Y here to make the IEEE 802.15.4 drivers generate extensive
+	  debugging messages.
+
 config IEEE802154_FAKEHARD
 	tristate "Fake LR-WPAN driver with several interconnected devices"
 	depends on  IEEE802154_DRIVERS
 	---help---
 	  Say Y here to enable the fake driver that serves as an example
-          of HardMAC device driver.
+	  of HardMAC device driver.
 
-          This driver can also be built as a module. To do so say M here.
+	  This driver can also be built as a module. To do so say M here.
 	  The module will be called 'fakehard'.
+
+
+config IEEE802154_FAKELB
+	depends on IEEE802154_DRIVERS && MAC802154
+	tristate "Fake LR-WPAN driver with several interconnected devices"
+	---help---
+	  Say Y here to enable the fake driver that can emulate a net
+	  of several interconnected radio devices.
+
+	  This driver can also be built as a module. To do so say M here.
+	  The module will be called 'fakelb'.
+
+config IEEE802154_SERIAL
+	depends on IEEE802154_DRIVERS && MAC802154
+	tristate "Simple LR-WPAN UART driver"
+
+config IEEE802154_AT86RF230
+	depends on IEEE802154_DRIVERS && MAC802154
+	tristate "AT86RF230 transceiver driver"
+	depends on SPI
+
+config SPI_ATBEN
+	tristate "ATBEN 8:10 SPI interface"
+	depends on JZ4740_QI_LB60 && IEEE802154_AT86RF230
+	help
+	  Bit-banging SPI driver for the 8:10 interface of the Ben NanoNote
+	  when equipped with an ATBEN board.
+
+config SPI_ATUSB
+       tristate "ATUSB SPI interface"
+       depends on USB && IEEE802154_AT86RF230
+        help
+          SPI-over-USB driver for the ATUSB IEEE 802.15.4 board.
+
+config IEEE802154_CC2420
+       tristate "CC2420 driver"
+       depends on SPI
+       depends on  IEEE802154_DRIVERS
+
+config IEEE802154_ADF7242
+       tristate "ADF7242 transceiver driver"
+       depends on IEEE802154_DRIVERS && MAC802154
+       depends on SPI
 

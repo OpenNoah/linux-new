@@ -1,1 +1,12 @@
 obj-$(CONFIG_IEEE802154_FAKEHARD) += fakehard.o
+obj-$(CONFIG_IEEE802154_FAKELB) += fakelb.o
+obj-$(CONFIG_IEEE802154_SERIAL) += serial.o
+obj-$(CONFIG_IEEE802154_AT86RF230) += at86rf230.o
+obj-$(CONFIG_IEEE802154_CC2420) += cc2420.o
+obj-$(CONFIG_IEEE802154_ADF7242) += adf7242.o
+obj-$(CONFIG_SPI_ATBEN) += spi_atben.o
+obj-$(CONFIG_SPI_ATUSB) += spi_atusb.o
+
+ccflags-y := -DDEBUG -DCONFIG_FFD
+ccflags-$(CONFIG_IEEE802154_DRIVER_DEBUG) += -DDEBUG
+ccflags-y += -DCONFIG_FFD

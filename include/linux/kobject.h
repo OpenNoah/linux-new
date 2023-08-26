@@ -31,6 +31,8 @@
 #define UEVENT_NUM_ENVP			32	/* number of env pointers */
 #define UEVENT_BUFFER_SIZE		2048	/* buffer for the variables */
 
+struct sk_buff;
+
 /* path to the userspace helper executed on an event */
 extern char uevent_helper[];
 
@@ -213,6 +215,10 @@ int add_uevent_var(struct kobj_uevent_env *env, const char *format, ...);
 
 int kobject_action_type(const char *buf, size_t count,
 			enum kobject_action *type);
+
+int broadcast_uevent(struct sk_buff *skb, __u32 pid, __u32 group,
+		     gfp_t allocation);
+
 #else
 static inline int kobject_uevent(struct kobject *kobj,
 				 enum kobject_action action)
@@ -229,6 +235,16 @@ int add_uevent_var(struct kobj_uevent_env *env, const char *format, ...)
 static inline int kobject_action_type(const char *buf, size_t count,
 				      enum kobject_action *type)
 { return -EINVAL; }
+
+void kfree_skb(struct sk_buff *);
+
+static inline int broadcast_uevent(struct sk_buff *skb, __u32 pid, __u32 group,
+				   gfp_t allocation)
+{
+	kfree_skb(skb);
+	return 0;
+}
+
 #endif
 
 #endif /* _KOBJECT_H_ */

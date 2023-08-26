@@ -4034,6 +4034,7 @@ static int con_font_set(struct vc_data *vc, struct console_font_op *op)
 	struct console_font font;
 	int rc = -EINVAL;
 	int size;
+	u8 std_font = *((u32*)op->data) != 0x6a127efd;
 
 	if (vc->vc_mode != KD_TEXT)
 		return -EINVAL;
@@ -4063,7 +4064,7 @@ static int con_font_set(struct vc_data *vc, struct console_font_op *op)
 	}
 	if (op->width <= 0 || op->width > 32 || op->height > 32)
 		return -EINVAL;
-	size = (op->width+7)/8 * 32 * op->charcount;
+	size = ( std_font ? (op->width+7)/8 * 32 : 4 * op->width * op->height) * op->charcount;
 	if (size > max_font_size)
 		return -ENOSPC;
 	font.charcount = op->charcount;

@@ -156,7 +156,8 @@ static int cistpl_funce_common(struct mmc_card *card, struct sdio_func *func,
 	/* TPLFE_MAX_TRAN_SPEED */
 	card->cis.max_dtr = speed_val[(buf[3] >> 3) & 15] *
 			    speed_unit[buf[3] & 7];
-
+	if(card->cis.max_dtr > 25000000 && card->cccr.sdio_vsn < SDIO_SDIO_REV_2_00)
+		card->cis.max_dtr = 25000000;
 	return 0;
 }
 
@@ -177,14 +178,14 @@ static int cistpl_funce_func(struct mmc_card *card, struct sdio_func *func,
 	vsn = func->card->cccr.sdio_vsn;
 	min_size = (vsn == SDIO_SDIO_REV_1_00) ? 28 : 42;
 
-	if (size < min_size)
+	if (buf[0] != 1)
 		return -EINVAL;
 
 	/* TPLFE_MAX_BLK_SIZE */
 	func->max_blksize = buf[12] | (buf[13] << 8);
 
 	/* TPLFE_ENABLE_TIMEOUT_VAL, present in ver 1.1 and above */
-	if (vsn > SDIO_SDIO_REV_1_00)
+	if (vsn > SDIO_SDIO_REV_1_00 && size >= min_size)
 		func->enable_timeout = (buf[28] | (buf[29] << 8)) * 10;
 	else
 		func->enable_timeout = jiffies_to_msecs(HZ);

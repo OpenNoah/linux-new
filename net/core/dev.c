@@ -1176,6 +1176,7 @@ static int __dev_open(struct net_device *dev)
 		net_dmaengine_get();
 		dev_set_rx_mode(dev);
 		dev_activate(dev);
+		add_device_randomness(dev->dev_addr, dev->addr_len);
 	}
 
 	return ret;
@@ -2266,9 +2267,19 @@ int dev_hard_start_xmit(struct sk_buff *skb, struct net_device *dev,
 			}
 		}
 
-		skb_len = skb->len;
-		rc = ops->ndo_start_xmit(skb, dev);
-		trace_net_dev_xmit(skb, rc, dev, skb_len);
+#ifdef CONFIG_ETHERNET_PACKET_MANGLE
+		if (!dev->eth_mangle_tx ||
+		    (skb = dev->eth_mangle_tx(dev, skb)) != NULL)
+#else
+		if (1)
+#endif
+		{
+			skb_len = skb->len;
+			rc = ops->ndo_start_xmit(skb, dev);
+			trace_net_dev_xmit(skb, rc, dev, skb_len);
+		} else {
+			rc = NETDEV_TX_OK;
+		}
 		if (rc == NETDEV_TX_OK)
 			txq_trans_update(txq);
 		return rc;
@@ -2288,9 +2299,19 @@ gso:
 		if (dev->priv_flags & IFF_XMIT_DST_RELEASE)
 			skb_dst_drop(nskb);
 
-		skb_len = nskb->len;
-		rc = ops->ndo_start_xmit(nskb, dev);
-		trace_net_dev_xmit(nskb, rc, dev, skb_len);
+#ifdef CONFIG_ETHERNET_PACKET_MANGLE
+		if (!dev->eth_mangle_tx ||
+		    (nskb = dev->eth_mangle_tx(dev, nskb)) != NULL)
+#else
+		if (1)
+#endif
+		{
+			skb_len = nskb->len;
+			rc = ops->ndo_start_xmit(nskb, dev);
+			trace_net_dev_xmit(nskb, rc, dev, skb_len);
+		} else {
+			rc = NETDEV_TX_OK;
+		}
 		if (unlikely(rc != NETDEV_TX_OK)) {
 			if (rc & ~NETDEV_TX_MASK)
 				goto out_kfree_gso_skb;
@@ -4823,6 +4844,7 @@ int dev_set_mac_address(struct net_device *dev, struct sockaddr *sa)
 	err = ops->ndo_set_mac_address(dev, sa);
 	if (!err)
 		call_netdevice_notifiers(NETDEV_CHANGEADDR, dev);
+	add_device_randomness(dev->dev_addr, dev->addr_len);
 	return err;
 }
 EXPORT_SYMBOL(dev_set_mac_address);
@@ -5602,6 +5624,7 @@ int register_netdevice(struct net_device *dev)
 	dev_init_scheduler(dev);
 	dev_hold(dev);
 	list_netdevice(dev);
+	add_device_randomness(dev->dev_addr, dev->addr_len);
 
 	/* Notify protocols, that a new device appeared. */
 	ret = call_netdevice_notifiers(NETDEV_REGISTER, dev);

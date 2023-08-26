@@ -268,3 +268,10 @@ void __cpuinit twd_timer_setup(struct clock_event_device *clk)
 					0xf, 0xffffffff);
 	enable_percpu_irq(clk->irq, 0);
 }
+
+/* Needed by mpcore_wdt */
+unsigned long twd_timer_get_rate(void)
+{
+	return twd_timer_rate;
+}
+EXPORT_SYMBOL_GPL(twd_timer_get_rate);

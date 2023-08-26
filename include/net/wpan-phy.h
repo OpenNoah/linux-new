@@ -24,17 +24,19 @@
 #include <linux/netdevice.h>
 #include <linux/mutex.h>
 
+#define WPAN_NUM_PAGES 32
+
 struct wpan_phy {
 	struct mutex pib_lock;
 
 	/*
-	 * This is a PIB according to 802.15.4-2006.
+	 * This is a PIB acording to 802.15.4-2006.
 	 * We do not provide timing-related variables, as they
 	 * aren't used outside of driver
 	 */
 	u8 current_channel;
 	u8 current_page;
-	u32 channels_supported[32];
+	u32 channels_supported[WPAN_NUM_PAGES];
 	u8 transmit_power;
 	u8 cca_mode;
 
@@ -42,7 +44,7 @@ struct wpan_phy {
 	int idx;
 
 	struct net_device *(*add_iface)(struct wpan_phy *phy,
-			const char *name);
+			const char *name, int type);
 	void (*del_iface)(struct wpan_phy *phy, struct net_device *dev);
 
 	char priv[0] __attribute__((__aligned__(NETDEV_ALIGN)));

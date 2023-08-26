@@ -178,6 +178,14 @@ config USB_FUSB300
 	help
 	   Faraday usb device controller FUSB300 driver
 
+config USB_JZ4740
+	tristate "JZ4740 UDC"
+	depends on MACH_JZ4740
+	select USB_GADGET_DUALSPEED
+	help
+	   Select this to support the Ingenic JZ4740 processor
+	   high speed USB device controller.
+
 config USB_OMAP
 	tristate "OMAP USB Device Controller"
 	depends on ARCH_OMAP

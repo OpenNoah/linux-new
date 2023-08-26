@@ -6,6 +6,16 @@ menu "Character devices"
 
 source "drivers/tty/Kconfig"
 
+config DEVMEM
+	bool "/dev/mem virtual device support"
+	default y
+	help
+	  Say Y here if you want to support the /dev/mem device.
+	  Some X server drivers access the video hardware using this device.
+	  Accessing hardware directly from user space can be useful in some
+	  cases, but it is not without risks.
+	  When in doubt, say "N".
+
 config DEVKMEM
 	bool "/dev/kmem virtual device support"
 	default y
@@ -510,6 +520,14 @@ config NSC_GPIO
 	  Common support used (and needed) by scx200_gpio and
 	  pc8736x_gpio drivers.  If those drivers are built as
 	  modules, this one will be too, named nsc_gpio
+
+config GPIO_DEVICE
+	tristate "GPIO device support"
+	depends on GENERIC_GPIO
+	help
+	  Say Y to enable Linux GPIO device support.  This allows control of
+	  GPIO pins using a character device
+
 
 config RAW_DRIVER
 	tristate "RAW driver (/dev/raw/rawN)"

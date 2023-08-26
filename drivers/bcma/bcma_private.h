@@ -10,10 +10,19 @@
 
 #define BCMA_CORE_SIZE		0x1000
 
+#define bcma_err(bus, fmt, ...) \
+	pr_err("bus%d: " fmt, (bus)->num, ##__VA_ARGS__)
+#define bcma_warn(bus, fmt, ...) \
+	pr_warn("bus%d: " fmt, (bus)->num, ##__VA_ARGS__)
+#define bcma_info(bus, fmt, ...) \
+	pr_info("bus%d: " fmt, (bus)->num, ##__VA_ARGS__)
+#define bcma_debug(bus, fmt, ...) \
+	pr_debug("bus%d: " fmt, (bus)->num, ##__VA_ARGS__)
+
 struct bcma_bus;
 
 /* main.c */
-int bcma_bus_register(struct bcma_bus *bus);
+int __devinit bcma_bus_register(struct bcma_bus *bus);
 void bcma_bus_unregister(struct bcma_bus *bus);
 int __init bcma_bus_early_register(struct bcma_bus *bus,
 				   struct bcma_device *core_cc,
@@ -48,8 +57,12 @@ extern int __init bcma_host_pci_init(void);
 extern void __exit bcma_host_pci_exit(void);
 #endif /* CONFIG_BCMA_HOST_PCI */
 
+/* driver_pci.c */
+u32 bcma_pcie_read(struct bcma_drv_pci *pc, u32 address);
+
 #ifdef CONFIG_BCMA_DRIVER_PCI_HOSTMODE
-void bcma_core_pci_hostmode_init(struct bcma_drv_pci *pc);
+bool __devinit bcma_core_pci_is_in_hostmode(struct bcma_drv_pci *pc);
+void __devinit bcma_core_pci_hostmode_init(struct bcma_drv_pci *pc);
 #endif /* CONFIG_BCMA_DRIVER_PCI_HOSTMODE */
 
 #endif

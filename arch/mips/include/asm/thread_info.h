@@ -85,6 +85,7 @@ register struct thread_info *__current_thread_info __asm__("$28");
 
 #define STACK_WARN	(THREAD_SIZE / 8)
 
+#if 0
 #define __HAVE_ARCH_THREAD_INFO_ALLOCATOR
 
 #ifdef CONFIG_DEBUG_STACK_USAGE
@@ -96,6 +97,7 @@ register struct thread_info *__current_thread_info __asm__("$28");
 #endif
 
 #define free_thread_info(info) kfree(info)
+#endif
 
 #endif /* !__ASSEMBLY__ */
 

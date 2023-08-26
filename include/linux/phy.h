@@ -393,8 +393,17 @@ struct phy_driver {
 	 */
 	int (*config_aneg)(struct phy_device *phydev);
 
+	/* Determine if autonegotiation is done */
+	int (*aneg_done)(struct phy_device *phydev);
+
 	/* Determines the negotiated speed and duplex */
 	int (*read_status)(struct phy_device *phydev);
+
+	/* 
+	 * Update the value in phydev->link to reflect the 
+	 * current link value
+	 */
+	int (*update_link)(struct phy_device *phydev);
 
 	/* Clears any pending interrupts */
 	int (*ack_interrupt)(struct phy_device *phydev);
@@ -515,6 +524,7 @@ void phy_start_machine(struct phy_device *phydev,
 void phy_stop_machine(struct phy_device *phydev);
 int phy_ethtool_sset(struct phy_device *phydev, struct ethtool_cmd *cmd);
 int phy_ethtool_gset(struct phy_device *phydev, struct ethtool_cmd *cmd);
+int phy_ethtool_ioctl(struct phy_device *phydev, void *useraddr);
 int phy_mii_ioctl(struct phy_device *phydev,
 		struct ifreq *ifr, int cmd);
 int phy_start_interrupts(struct phy_device *phydev);
@@ -533,4 +543,22 @@ int __init mdio_bus_init(void);
 void mdio_bus_exit(void);
 
 extern struct bus_type mdio_bus_type;
+
+struct mdio_board_info {
+	const char	*bus_id;
+	int		phy_addr;
+
+	const void	*platform_data;
+};
+
+#ifdef CONFIG_MDIO_BOARDINFO
+int mdiobus_register_board_info(const struct mdio_board_info *info, unsigned n);
+#else
+static inline int
+mdiobus_register_board_info(const struct mdio_board_info *info, unsigned n)
+{
+	return 0;
+}
+#endif
+
 #endif /* __PHY_H */

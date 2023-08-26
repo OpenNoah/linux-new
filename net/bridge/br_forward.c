@@ -55,7 +55,7 @@ int br_dev_queue_push_xmit(struct sk_buff *skb)
 
 int br_forward_finish(struct sk_buff *skb)
 {
-	return NF_HOOK(NFPROTO_BRIDGE, NF_BR_POST_ROUTING, skb, NULL, skb->dev,
+	return BR_HOOK(NFPROTO_BRIDGE, NF_BR_POST_ROUTING, skb, NULL, skb->dev,
 		       br_dev_queue_push_xmit);
 
 }
@@ -74,7 +74,7 @@ static void __br_deliver(const struct net_bridge_port *to, struct sk_buff *skb)
 		return;
 	}
 
-	NF_HOOK(NFPROTO_BRIDGE, NF_BR_LOCAL_OUT, skb, NULL, skb->dev,
+	BR_HOOK(NFPROTO_BRIDGE, NF_BR_LOCAL_OUT, skb, NULL, skb->dev,
 		br_forward_finish);
 }
 
@@ -91,7 +91,7 @@ static void __br_forward(const struct net_bridge_port *to, struct sk_buff *skb)
 	skb->dev = to->dev;
 	skb_forward_csum(skb);
 
-	NF_HOOK(NFPROTO_BRIDGE, NF_BR_FORWARD, skb, indev, skb->dev,
+	BR_HOOK(NFPROTO_BRIDGE, NF_BR_FORWARD, skb, indev, skb->dev,
 		br_forward_finish);
 }
 
@@ -109,7 +109,7 @@ void br_deliver(const struct net_bridge_port *to, struct sk_buff *skb)
 /* called with rcu_read_lock */
 void br_forward(const struct net_bridge_port *to, struct sk_buff *skb, struct sk_buff *skb0)
 {
-	if (should_deliver(to, skb)) {
+	if (should_deliver(to, skb) && !(to->flags & BR_ISOLATE_MODE)) {
 		if (skb0)
 			deliver_clone(to, skb, __br_forward);
 		else
@@ -164,7 +164,8 @@ out:
 static void br_flood(struct net_bridge *br, struct sk_buff *skb,
 		     struct sk_buff *skb0,
 		     void (*__packet_hook)(const struct net_bridge_port *p,
-					   struct sk_buff *skb))
+					   struct sk_buff *skb),
+		     bool forward)
 {
 	struct net_bridge_port *p;
 	struct net_bridge_port *prev;
@@ -172,6 +173,9 @@ static void br_flood(struct net_bridge *br, struct sk_buff *skb,
 	prev = NULL;
 
 	list_for_each_entry_rcu(p, &br->port_list, list) {
+		if (forward && (p->flags & BR_ISOLATE_MODE))
+			continue;
+
 		prev = maybe_deliver(prev, p, skb, __packet_hook);
 		if (IS_ERR(prev))
 			goto out;
@@ -195,14 +199,14 @@ out:
 /* called with rcu_read_lock */
 void br_flood_deliver(struct net_bridge *br, struct sk_buff *skb)
 {
-	br_flood(br, skb, NULL, __br_deliver);
+	br_flood(br, skb, NULL, __br_deliver, false);
 }
 
 /* called under bridge lock */
 void br_flood_forward(struct net_bridge *br, struct sk_buff *skb,
 		      struct sk_buff *skb2)
 {
-	br_flood(br, skb, skb2, __br_forward);
+	br_flood(br, skb, skb2, __br_forward, true);
 }
 
 #ifdef CONFIG_BRIDGE_IGMP_SNOOPING

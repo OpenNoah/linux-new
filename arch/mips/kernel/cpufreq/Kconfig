@@ -8,7 +8,7 @@ config MIPS_EXTERNAL_TIMER
 config MIPS_CPUFREQ
 	bool
 	default y
-	depends on CPU_SUPPORTS_CPUFREQ && MIPS_EXTERNAL_TIMER
+	depends on CPU_SUPPORTS_CPUFREQ
 
 if MIPS_CPUFREQ
 
@@ -24,6 +24,7 @@ config LOONGSON2_CPUFREQ
 	tristate "Loongson2 CPUFreq Driver"
 	select CPU_FREQ_TABLE
 	depends on MIPS_CPUFREQ
+	depends on MIPS_EXTERNAL_TIMER
 	help
 	  This option adds a CPUFreq driver for loongson processors which
 	  support software configurable cpu frequency.
@@ -31,6 +32,16 @@ config LOONGSON2_CPUFREQ
 	  Loongson2F and it's successors support this feature.
 
 	  For details, take a look at <file:Documentation/cpu-freq/>.
+
+	  If in doubt, say N.
+
+config CPU_FREQ_JZ
+	tristate "CPUfreq driver for JZ CPUs"
+	select CPU_FREQ_TABLE
+	depends on MACH_JZ4740
+	default n
+	help
+	  This enables the CPUfreq driver for JZ CPUs.
 
 	  If in doubt, say N.
 

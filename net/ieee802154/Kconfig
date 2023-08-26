@@ -16,3 +16,11 @@ config IEEE802154_6LOWPAN
 	depends on IEEE802154 && IPV6
 	---help---
 	IPv6 compression over IEEE 802.15.4.
+
+config IEEE802154_PROTO_DEBUG
+	bool "IEEE 802.15.4 protocol stack debugging messages"
+	depends on IEEE802154
+	default y
+	help
+	  Say Y here to make the IEEE 802.15.4 protocol stack generate
+	  extensive debugging messages.

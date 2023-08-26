@@ -1143,7 +1143,7 @@ static int nand_read_page_swecc(struct mtd_info *mtd, struct nand_chip *chip,
  * @bufpoi: buffer to store read data
  */
 static int nand_read_subpage(struct mtd_info *mtd, struct nand_chip *chip,
-			uint32_t data_offs, uint32_t readlen, uint8_t *bufpoi)
+			uint32_t data_offs, uint32_t readlen, uint8_t *bufpoi, int page)
 {
 	int start_step, end_step, num_steps;
 	uint32_t *eccpos = chip->ecc.layout->eccpos;
@@ -1294,12 +1294,15 @@ static int nand_read_page_hwecc_oob_first(struct mtd_info *mtd,
 	uint8_t *ecc_calc = chip->buffers->ecccalc;
 
 	/* Read the OOB area first */
-	chip->cmdfunc(mtd, NAND_CMD_READOOB, 0, page);
-	chip->read_buf(mtd, chip->oob_poi, mtd->oobsize);
-	chip->cmdfunc(mtd, NAND_CMD_READ0, 0, page);
-
-	for (i = 0; i < chip->ecc.total; i++)
-		ecc_code[i] = chip->oob_poi[eccpos[i]];
+	if (mtd->writesize > 512) {
+		chip->cmdfunc(mtd, NAND_CMD_READ0, mtd->writesize + eccpos[0], page);
+		chip->read_buf(mtd, ecc_code, chip->ecc.total);
+		chip->cmdfunc(mtd, NAND_CMD_RNDOUT, 0, -1);
+	} else {
+		chip->cmdfunc(mtd, NAND_CMD_READOOB, 0, page);
+		chip->read_buf(mtd, chip->oob_poi, mtd->oobsize);
+		chip->cmdfunc(mtd, NAND_CMD_READ0, 0, page);
+	}
 
 	for (i = 0; eccsteps; eccsteps--, i += eccbytes, p += eccsize) {
 		int stat;
@@ -1314,6 +1317,72 @@ static int nand_read_page_hwecc_oob_first(struct mtd_info *mtd,
 		else
 			mtd->ecc_stats.corrected += stat;
 	}
+	return 0;
+}
+
+/**
+ * nand_read_subpage_hwecc_oob_first - [REPLACABLE] hw ecc based sub-page read function
+ * @mtd:	mtd info structure
+ * @chip:	nand chip info structure
+ * @data_offs:	offset of requested data within the page
+ * @readlen:	data length
+ * @bufpoi:	buffer to store read data
+ * @page:	page number to read
+ *
+ * Hardware ECC for large page chips, require OOB to be read first.
+ * For this ECC mode, the write_page method is re-used from ECC_HW.
+ * These methods read/write ECC from the OOB area, unlike the
+ * ECC_HW_SYNDROME support with multiple ECC steps, follows the
+ * "infix ECC" scheme and reads/writes ECC from the data area, by
+ * overwriting the NAND manufacturer bad block markings.
+ */
+static int nand_read_subpage_hwecc_oob_first(struct mtd_info *mtd, struct nand_chip *chip,
+			uint32_t data_offs, uint32_t readlen, uint8_t *bufpoi, int page)
+{
+	int start_step, end_step, num_steps;
+	uint32_t *eccpos = chip->ecc.layout->eccpos;
+	uint8_t *p;
+	int data_col_addr;
+	int eccsize = chip->ecc.size;
+	int eccbytes = chip->ecc.bytes;
+	uint8_t *ecc_code = chip->buffers->ecccode;
+	uint8_t *ecc_calc = chip->buffers->ecccalc;
+	int i;
+
+	/* Column address wihin the page aligned to ECC size */
+	start_step = data_offs / chip->ecc.size;
+	end_step = (data_offs + readlen - 1) / chip->ecc.size;
+	num_steps = end_step - start_step + 1;
+
+	data_col_addr = start_step * chip->ecc.size;
+
+	/* Read the OOB area first */
+	if (mtd->writesize > 512) {
+		chip->cmdfunc(mtd, NAND_CMD_READ0, mtd->writesize + eccpos[0], page);
+		chip->read_buf(mtd, ecc_code, chip->ecc.total);
+		chip->cmdfunc(mtd, NAND_CMD_RNDOUT, data_col_addr, -1);
+	} else {
+		chip->cmdfunc(mtd, NAND_CMD_READOOB, 0, page);
+		chip->read_buf(mtd, chip->oob_poi, mtd->oobsize);
+		chip->cmdfunc(mtd, NAND_CMD_READ0, data_col_addr, page);
+	}
+
+	p = bufpoi + data_col_addr;
+
+	for (i = eccbytes * start_step; num_steps; num_steps--, i += eccbytes, p += eccsize) {
+		int stat;
+
+		chip->ecc.hwctl(mtd, NAND_ECC_READ);
+		chip->read_buf(mtd, p, eccsize);
+		chip->ecc.calculate(mtd, p, &ecc_calc[i]);
+
+		stat = chip->ecc.correct(mtd, p, &ecc_code[i], NULL);
+		if (stat < 0)
+			mtd->ecc_stats.failed++;
+		else
+			mtd->ecc_stats.corrected += stat;
+	}
+
 	return 0;
 }
 
@@ -1465,7 +1534,7 @@ static int nand_do_read_ops(struct mtd_info *mtd, loff_t from,
 		if (realpage != chip->pagebuf || oob) {
 			bufpoi = aligned ? buf : chip->buffers->databuf;
 
-			if (likely(sndcmd)) {
+			if (likely(sndcmd) && chip->ecc.mode != NAND_ECC_HW_OOB_FIRST) {
 				chip->cmdfunc(mtd, NAND_CMD_READ0, 0x00, page);
 				sndcmd = 0;
 			}
@@ -1476,7 +1545,7 @@ static int nand_do_read_ops(struct mtd_info *mtd, loff_t from,
 							      bufpoi, page);
 			else if (!aligned && NAND_SUBPAGE_READ(chip) && !oob)
 				ret = chip->ecc.read_subpage(mtd, chip,
-							col, bytes, bufpoi);
+							col, bytes, bufpoi, page);
 			else
 				ret = chip->ecc.read_page(mtd, chip, bufpoi,
 							  page);
@@ -3287,8 +3356,11 @@ int nand_scan_tail(struct mtd_info *mtd)
 				   "hardware ECC not possible\n");
 			BUG();
 		}
-		if (!chip->ecc.read_page)
+		if (!chip->ecc.read_page) {
 			chip->ecc.read_page = nand_read_page_hwecc_oob_first;
+			if (!chip->ecc.read_subpage)
+				chip->ecc.read_subpage = nand_read_subpage_hwecc_oob_first;
+		}
 
 	case NAND_ECC_HW:
 		/* Use standard hwecc read page function? */

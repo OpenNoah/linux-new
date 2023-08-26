@@ -40,7 +40,7 @@ static int br_pass_frame_up(struct sk_buff *skb)
 	indev = skb->dev;
 	skb->dev = brdev;
 
-	return NF_HOOK(NFPROTO_BRIDGE, NF_BR_LOCAL_IN, skb, indev, NULL,
+	return BR_HOOK(NFPROTO_BRIDGE, NF_BR_LOCAL_IN, skb, indev, NULL,
 		       netif_receive_skb);
 }
 
@@ -65,7 +65,7 @@ int br_handle_frame_finish(struct sk_buff *skb)
 	    br_multicast_rcv(br, p, skb))
 		goto drop;
 
-	if (p->state == BR_STATE_LEARNING)
+	if ((p->state == BR_STATE_LEARNING) && skb->protocol != htons(ETH_P_PAE))
 		goto drop;
 
 	BR_INPUT_SKB_CB(skb)->brdev = br->dev;
@@ -78,7 +78,11 @@ int br_handle_frame_finish(struct sk_buff *skb)
 
 	dst = NULL;
 
-	if (is_broadcast_ether_addr(dest))
+	if (skb->protocol == htons(ETH_P_PAE)) {
+		skb2 = skb;
+		/* Do not forward 802.1x/EAP frames */
+		skb = NULL;
+	} else if (is_broadcast_ether_addr(dest))
 		skb2 = skb;
 	else if (is_multicast_ether_addr(dest)) {
 		mdst = br_mdb_get(br, skb);
@@ -94,7 +98,8 @@ int br_handle_frame_finish(struct sk_buff *skb)
 			skb2 = skb;
 
 		br->dev->stats.multicast++;
-	} else if ((dst = __br_fdb_get(br, dest)) && dst->is_local) {
+	} else if ((p->flags & BR_ISOLATE_MODE) ||
+		   ((dst = __br_fdb_get(br, dest)) && dst->is_local)) {
 		skb2 = skb;
 		/* Do not forward the packet since it's local. */
 		skb = NULL;
@@ -194,7 +199,7 @@ rx_handler_result_t br_handle_frame(struct sk_buff **pskb)
 		}
 
 		/* Deliver packet to local host only */
-		if (NF_HOOK(NFPROTO_BRIDGE, NF_BR_LOCAL_IN, skb, skb->dev,
+		if (BR_HOOK(NFPROTO_BRIDGE, NF_BR_LOCAL_IN, skb, skb->dev,
 			    NULL, br_handle_local_finish)) {
 			return RX_HANDLER_CONSUMED; /* consumed by filter */
 		} else {
@@ -219,7 +224,7 @@ forward:
 		if (!compare_ether_addr(p->br->dev->dev_addr, dest))
 			skb->pkt_type = PACKET_HOST;
 
-		NF_HOOK(NFPROTO_BRIDGE, NF_BR_PRE_ROUTING, skb, skb->dev, NULL,
+		BR_HOOK(NFPROTO_BRIDGE, NF_BR_PRE_ROUTING, skb, skb->dev, NULL,
 			br_handle_frame_finish);
 		break;
 	default:

@@ -68,13 +68,12 @@ enum {
 	IEEE802154_ATTR_CHANNEL_PAGE_LIST,
 
 	IEEE802154_ATTR_PHY_NAME,
+	IEEE802154_ATTR_DEV_TYPE,
 
 	__IEEE802154_ATTR_MAX,
 };
 
 #define IEEE802154_ATTR_MAX (__IEEE802154_ATTR_MAX - 1)
-
-extern const struct nla_policy ieee802154_policy[];
 
 /* commands */
 /* REQ should be responded with CONF
@@ -125,5 +124,12 @@ enum {
 };
 
 #define IEEE802154_CMD_MAX (__IEEE802154_CMD_MAX - 1)
+
+enum {
+	IEEE802154_DEV_WPAN,
+	IEEE802154_DEV_MONITOR,
+	IEEE802154_DEV_SMAC,
+	__IEEE802154_DEV_MAX,
+};
 
 #endif

@@ -56,7 +56,7 @@ static ssize_t channels_supported_show(struct device *dev,
 	int i, len = 0;
 
 	mutex_lock(&phy->pib_lock);
-	for (i = 0; i < 32; i++) {
+	for (i = 0; i < WPAN_NUM_PAGES; i++) {
 		ret = snprintf(buf + len, PAGE_SIZE - len,
 				"%#09x\n", phy->channels_supported[i]);
 		if (ret < 0)

@@ -280,6 +280,8 @@ static int __devinit jz4740_rtc_probe(struct platform_device *pdev)
 		}
 	}
 
+	jz4740_rtc_ctrl_set_bits(rtc, JZ_RTC_CTRL_1HZ_IRQ, 1);
+
 	return 0;
 
 err_free_irq:
